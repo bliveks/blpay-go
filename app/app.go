@@ -89,8 +89,8 @@ var (
 			return fmt.Sprintf("%s %d", names[int(t.Month())-1], t.Year())
 		},
 	}).ParseFS(files, "templates/*.html"))
-	initOnce sync.Once
-	initErr  error
+	databaseMu   sync.Mutex
+	databasePool *sql.DB
 )
 
 var bakuLocation = func() *time.Location {
@@ -167,7 +167,6 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		renderConfig(w, err)
 		return
 	}
-	defer db.Close()
 	csrf := csrfToken(w, r)
 	user := currentUser(db, r)
 	if r.Method == http.MethodPost {
@@ -268,6 +267,11 @@ func database(ctx context.Context) (*sql.DB, error) {
 	if dsn == "" {
 		return nil, fmt.Errorf("DATABASE_URL təyin edilməyib")
 	}
+	databaseMu.Lock()
+	defer databaseMu.Unlock()
+	if databasePool != nil {
+		return databasePool, nil
+	}
 	config, err := pgx.ParseConfig(dsn)
 	if err != nil {
 		return nil, err
@@ -276,26 +280,23 @@ func database(ctx context.Context) (*sql.DB, error) {
 	db := stdlib.OpenDB(*config)
 	db.SetMaxOpenConns(1)
 	db.SetMaxIdleConns(1)
-	db.SetConnMaxLifetime(time.Minute)
+	db.SetConnMaxIdleTime(time.Minute)
+	db.SetConnMaxLifetime(5 * time.Minute)
 	if err = db.PingContext(ctx); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("Supabase PostgreSQL bağlantısı alınmadı: %w", err)
 	}
-	initOnce.Do(func() {
-		for _, statement := range strings.Split(string(mustRead("schema.sql")), ";") {
-			if strings.TrimSpace(statement) == "" {
-				continue
-			}
-			if _, initErr = db.ExecContext(ctx, statement); initErr != nil {
-				break
-			}
+	for _, statement := range strings.Split(string(mustRead("schema.sql")), ";") {
+		if strings.TrimSpace(statement) == "" {
+			continue
 		}
-	})
-	if initErr != nil {
-		db.Close()
-		return nil, fmt.Errorf("DB sxemi yaradılmadı: %w", initErr)
+		if _, err = db.ExecContext(ctx, statement); err != nil {
+			db.Close()
+			return nil, fmt.Errorf("DB sxemi yaradılmadı: %w", err)
+		}
 	}
-	return db, nil
+	databasePool = db
+	return databasePool, nil
 }
 func mustRead(name string) []byte {
 	b, e := files.ReadFile(name)
@@ -321,10 +322,12 @@ func serveAsset(w http.ResponseWriter, r *http.Request, p string) {
 	default:
 		w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
 	}
-	if strings.HasSuffix(name, ".css") || strings.HasSuffix(name, ".js") {
-		w.Header().Set("Cache-Control", "public, max-age=0, must-revalidate")
+	if strings.HasSuffix(name, ".css") || strings.HasSuffix(name, ".js") || strings.HasSuffix(name, ".png") {
+		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		w.Header().Set("Vercel-CDN-Cache-Control", "public, max-age=31536000, immutable")
 	} else {
 		w.Header().Set("Cache-Control", "public, max-age=3600")
+		w.Header().Set("Vercel-CDN-Cache-Control", "public, max-age=3600")
 	}
 	_, _ = w.Write(b)
 }
