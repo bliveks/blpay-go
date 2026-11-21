@@ -33,7 +33,7 @@
     </header>
     <div class="content">
       <div class="heading {{if or (eq .Active "/income") (eq .Active "/expenses")}}transaction-heading{{end}}">
-        <div>{{if and (ne .Active "/income") (ne .Active "/expenses")}}<div class="eyebrow">Şəxsi maliyyə paneli</div>{{end}}<h1>{{.Title}}</h1>{{if and (ne .Active "/income") (ne .Active "/expenses")}}<p>{{if eq .Active "/"}}Salam, {{.Name}}. Maliyyə vəziyyətinizə ümumi baxış.{{else}}{{month .Month}} üçün məlumatlar{{end}}</p>{{end}}</div>
+        <div>{{if and (ne .Active "/income") (ne .Active "/expenses")}}<div class="eyebrow">Şəxsi maliyyə paneli</div>{{end}}<h1>{{if eq .Active "/income"}}Gəlirlər{{else}}{{.Title}}{{end}}</h1>{{if and (ne .Active "/income") (ne .Active "/expenses")}}<p>{{if eq .Active "/"}}Salam, {{.Name}}. Maliyyə vəziyyətinizə ümumi baxış.{{else}}{{month .Month}} üçün məlumatlar{{end}}</p>{{end}}</div>
         {{if or (eq .Active "/income") (eq .Active "/expenses")}}
           <button class="btn" type="button" data-modal-open="transaction-modal"><i class="fa-solid fa-plus" aria-hidden="true"></i> Yeni {{if eq .FormType "gelir"}}gəlir{{else}}xərc{{end}}</button>
         {{else if eq .Active "/categories"}}
