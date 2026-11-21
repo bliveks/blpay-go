@@ -155,4 +155,13 @@
       if (!filter.hidden) filter.focus();
     });
   });
+
+  document.addEventListener('click', (event) => {
+    document.querySelectorAll('[data-category-filter]').forEach((container) => {
+      if (!container.contains(event.target)) {
+        const filter = container.querySelector('[data-category-type-filter]');
+        if (filter) filter.hidden = true;
+      }
+    });
+  });
 })();
