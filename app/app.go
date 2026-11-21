@@ -732,6 +732,7 @@ func loadPage(db *sql.DB, r *http.Request, p *Page, path string) {
 		}
 	case "/reports":
 		p.Title = "Hesabatlar"
+		p.Months = availableMonths(ctx, db, p.User.ID, p.Month)
 		_ = db.QueryRowContext(ctx, `SELECT COALESCE((SELECT SUM(mebleq) FROM gelirler WHERE istifadeci_id=$1 AND to_char(tarix,'YYYY-MM')=$2),0),COALESCE((SELECT SUM(mebleq) FROM xercler WHERE istifadeci_id=$1 AND to_char(tarix,'YYYY-MM')=$2),0)`, p.User.ID, month).Scan(&p.Income, &p.Expense)
 		p.Balance = p.Income - p.Expense
 		rows, _ := db.QueryContext(ctx, `SELECT k.ad,COALESCE(SUM(x.mebleq),0) FROM kateqoriyalar k LEFT JOIN xercler x ON x.kateqoriya_id=k.id AND x.istifadeci_id=$1 AND to_char(x.tarix,'YYYY-MM')=$2 WHERE k.istifadeci_id=$1 AND k.tip='xerc' GROUP BY k.id ORDER BY 2 DESC`, p.User.ID, month)
