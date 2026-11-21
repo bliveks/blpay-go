@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#147d57">
 <title>{{.Title}} · BlPay</title>
 <link rel="stylesheet" href="/assets/fontawesome.min.css">
-<link rel="stylesheet" href="/assets/app.css?v=11">
+<link rel="stylesheet" href="/assets/app.css?v=12">
 </head>
 <body>
 <div class="shell">
@@ -105,7 +105,16 @@
         </dialog>
       {{else if eq .Active "/reports"}}
         <section class="grid stats"><article class="card stat"><div class="stathead">Gəlir</div><div class="amount positive">{{money .Income}}</div></article><article class="card stat"><div class="stathead">Xərc</div><div class="amount negative">{{money .Expense}}</div></article><article class="card stat"><div class="stathead">Xalis balans</div><div class="amount">{{money .Balance}}</div></article></section>
-        <article class="card"><div class="cardtitle"><h2>Xərclər kateqoriyalara görə</h2></div>{{if .Items}}{{range .Items}}<div class="goal"><div class="goalhead"><span>{{.Name}}</span><strong>{{money .Amount}}</strong></div><div class="progress"><span style="width:{{if gt $.Expense 0.0}}{{pct .Amount $.Expense}}{{else}}0{{end}}%"></span></div></div>{{end}}{{else}}<p class="muted">Bu ay üçün xərc məlumatı yoxdur.</p>{{end}}</article>
+        <article class="card report-card"><div class="cardtitle"><h2><i class="fa-solid fa-bars" aria-hidden="true"></i> Bütün əməliyyatlar</h2></div><div class="tablewrap report-table-wrap"><table class="report-table"><thead><tr class="report-head"><th>Tarix</th><th>Növ</th><th>Hesab</th><th>Kateqoriya</th><th>Məbləğ ({{printf "%.2f" .TransactionTotal}})</th><th>Qeyd</th></tr><tr class="report-filter-row">
+          <th data-label="Tarix"><select data-report-filter="date" aria-label="Tarixə görə filtr"><option value="">Hamısı</option>{{range .ReportDates}}<option value="{{.}}">{{date .}}</option>{{end}}</select></th>
+          <th data-label="Növ"><select data-report-filter="kind" aria-label="Növə görə filtr"><option value="">Hamısı</option><option value="gelir">Gəlir</option><option value="xerc">Xərc</option></select></th>
+          <th data-label="Hesab"><select data-report-filter="account" aria-label="Hesaba görə filtr"><option value="">Hamısı</option><option value="nagd">Nağd</option><option value="kredit_kart">Kredit kartı</option><option value="debet_kart">Debet kartı</option></select></th>
+          <th data-label="Kateqoriya"><select data-report-filter="category" aria-label="Kateqoriyaya görə filtr"><option value="">Hamısı</option>{{range .Categories}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select></th>
+          <th data-label="Məbləğ"><select data-report-filter="amount" aria-label="Məbləğə görə filtr"><option value="">Hamısı</option><option value="under10">0–10 AZN</option><option value="10-50">10–50 AZN</option><option value="50-100">50–100 AZN</option><option value="100plus">100 AZN-dən çox</option></select></th>
+          <th data-label="Qeyd"><select data-report-filter="note" aria-label="Qeydə görə filtr"><option value="">Hamısı</option><option value="__empty__">Qeyd yoxdur</option>{{range .ReportNotes}}<option value="{{.}}">{{.}}</option>{{end}}</select></th>
+        </tr></thead><tbody>{{if .Transactions}}{{range .Transactions}}
+          <tr data-report-row data-date="{{.Date}}" data-kind="{{.Kind}}" data-account="{{.Account}}" data-category="{{.Category}}" data-amount="{{.Amount}}" data-note="{{.Note}}"><td data-label="Tarix">{{date .Date}}</td><td data-label="Növ"><span class="report-kind {{if eq .Kind "gelir"}}report-income{{else}}report-expense{{end}}">{{kind .Kind}}</span></td><td data-label="Hesab">{{account .Account}}</td><td data-label="Kateqoriya">{{.Category}}</td><td data-label="Məbləğ" class="{{if eq .Kind "gelir"}}positive{{else}}negative{{end}}">{{printf "%.2f" .Amount}}</td><td data-label="Qeyd">{{if .Note}}{{.Note}}{{else}}—{{end}}</td></tr>
+        {{end}}{{else}}<tr><td colspan="6" class="report-no-data">Bu ay üçün əməliyyat yoxdur.</td></tr>{{end}}<tr class="report-filter-empty" hidden><td colspan="6">Filtrə uyğun əməliyyat tapılmadı.</td></tr></tbody></table></div></article>
       {{else if eq .Active "/settings"}}
         <section class="card" style="max-width:620px"><div class="cardtitle"><h2>Profil məlumatları</h2></div><form method="post" action="/settings"><input type="hidden" name="csrf" value="{{.CSRF}}"><div class="inline"><div><label class="formlabel">Ad</label><input class="input" name="name" value="{{.User.First}}" required></div><div><label class="formlabel">Soyad</label><input class="input" name="surname" value="{{.User.Last}}" required></div></div><label class="formlabel">E-poçt</label><input class="input" value="{{.User.Email}}" disabled><button class="btn" style="margin-top:18px" type="submit">Yadda saxla</button></form></section>
       {{else if eq .Active "/admin"}}
@@ -115,6 +124,6 @@
   </main>
 </div>
 {{if or .Error .Success}}<div class="toast {{if .Success}}toast-ok{{else}}toast-error{{end}}" role="{{if .Error}}alert{{else}}status{{end}}" aria-live="{{if .Error}}assertive{{else}}polite{{end}}">{{if .Success}}{{.Success}}{{else}}{{.Error}}{{end}}</div>{{end}}
-<script src="/assets/app.js?v=7" defer></script>
+<script src="/assets/app.js?v=8" defer></script>
 </body>
 </html>

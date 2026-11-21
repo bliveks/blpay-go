@@ -63,6 +63,13 @@ var (
 			return "Xərc"
 		},
 		"nowDate": func() string { return time.Now().Format("2006-01-02") },
+		"date": func(v string) string {
+			t, e := time.Parse("2006-01-02", v)
+			if e != nil {
+				return v
+			}
+			return t.Format("02.01.2006")
+		},
 		"monthName": func(v string) string {
 			t, e := time.Parse("2006-01", v)
 			if e != nil {
@@ -106,10 +113,12 @@ type Page struct {
 	Income, Expense, Balance                                float64
 	Transactions                                            []Tx
 	Months                                                  []string
+	ReportDates, ReportNotes                                []string
 	Categories                                              []Category
 	Items                                                   []map[string]any
 	IsAdmin                                                 bool
 	FormType                                                string
+	TransactionTotal                                        float64
 }
 
 func HandlerFunc() http.Handler { return http.HandlerFunc(Handler) }
@@ -735,13 +744,33 @@ func loadPage(db *sql.DB, r *http.Request, p *Page, path string) {
 		p.Months = availableMonths(ctx, db, p.User.ID, p.Month)
 		_ = db.QueryRowContext(ctx, `SELECT COALESCE((SELECT SUM(mebleq) FROM gelirler WHERE istifadeci_id=$1 AND to_char(tarix,'YYYY-MM')=$2),0),COALESCE((SELECT SUM(mebleq) FROM xercler WHERE istifadeci_id=$1 AND to_char(tarix,'YYYY-MM')=$2),0)`, p.User.ID, month).Scan(&p.Income, &p.Expense)
 		p.Balance = p.Income - p.Expense
-		rows, _ := db.QueryContext(ctx, `SELECT k.ad,COALESCE(SUM(x.mebleq),0) FROM kateqoriyalar k LEFT JOIN xercler x ON x.kateqoriya_id=k.id AND x.istifadeci_id=$1 AND to_char(x.tarix,'YYYY-MM')=$2 WHERE k.istifadeci_id=$1 AND k.tip='xerc' GROUP BY k.id ORDER BY 2 DESC`, p.User.ID, month)
+		rows, _ := db.QueryContext(ctx, `SELECT id,ad,tip,COALESCE(limit_mebleq,0) FROM kateqoriyalar WHERE istifadeci_id=$1 ORDER BY ad`, p.User.ID)
 		if rows != nil {
 			for rows.Next() {
-				var name string
-				var val float64
-				_ = rows.Scan(&name, &val)
-				p.Items = append(p.Items, map[string]any{"Name": name, "Amount": val})
+				var category Category
+				_ = rows.Scan(&category.ID, &category.Name, &category.Type, &category.Limit)
+				p.Categories = append(p.Categories, category)
+			}
+			rows.Close()
+		}
+		rows, _ = db.QueryContext(ctx, `SELECT x.id,k.ad,x.mebleq,x.tarix::text,x.hesab_novu,x.qeyd,x.kind FROM (SELECT id,kateqoriya_id,mebleq,tarix,hesab_novu,qeyd,'gelir' kind,istifadeci_id FROM gelirler WHERE istifadeci_id=$1 AND to_char(tarix,'YYYY-MM')=$2 UNION ALL SELECT id,kateqoriya_id,mebleq,tarix,hesab_novu,qeyd,'xerc' kind,istifadeci_id FROM xercler WHERE istifadeci_id=$1 AND to_char(tarix,'YYYY-MM')=$2) x JOIN kateqoriyalar k ON k.id=x.kateqoriya_id ORDER BY x.tarix DESC,x.id DESC`, p.User.ID, month)
+		if rows != nil {
+			dateSet, noteSet := map[string]bool{}, map[string]bool{}
+			for rows.Next() {
+				var transaction Tx
+				if rows.Scan(&transaction.ID, &transaction.Category, &transaction.Amount, &transaction.Date, &transaction.Account, &transaction.Note, &transaction.Kind) != nil {
+					continue
+				}
+				p.Transactions = append(p.Transactions, transaction)
+				p.TransactionTotal += transaction.Amount
+				if !dateSet[transaction.Date] {
+					p.ReportDates = append(p.ReportDates, transaction.Date)
+					dateSet[transaction.Date] = true
+				}
+				if transaction.Note != "" && !noteSet[transaction.Note] {
+					p.ReportNotes = append(p.ReportNotes, transaction.Note)
+					noteSet[transaction.Note] = true
+				}
 			}
 			rows.Close()
 		}
