@@ -673,6 +673,7 @@ func loadPage(db *sql.DB, r *http.Request, p *Page, path string) {
 	}
 	if path == "/" || path == "/dashboard" {
 		p.Title = "İcmal"
+		p.Months = availableMonths(ctx, db, p.User.ID, p.Month)
 		_ = db.QueryRowContext(ctx, `SELECT COALESCE((SELECT SUM(mebleq) FROM gelirler WHERE istifadeci_id=$1 AND to_char(tarix,'YYYY-MM')=$2),0),COALESCE((SELECT SUM(mebleq) FROM xercler WHERE istifadeci_id=$1 AND to_char(tarix,'YYYY-MM')=$2),0)`, p.User.ID, month).Scan(&p.Income, &p.Expense)
 		p.Balance = p.Income - p.Expense
 		rows, e := db.QueryContext(ctx, `SELECT x.id,k.ad,x.mebleq,x.tarix::text,x.hesab_novu,x.qeyd,x.kind FROM (SELECT id,kateqoriya_id,mebleq,tarix,hesab_novu,qeyd,'gelir' kind,istifadeci_id FROM gelirler UNION ALL SELECT id,kateqoriya_id,mebleq,tarix,hesab_novu,qeyd,'xerc' kind,istifadeci_id FROM xercler) x JOIN kateqoriyalar k ON k.id=x.kateqoriya_id WHERE x.istifadeci_id=$1 ORDER BY x.tarix DESC,x.id DESC LIMIT 8`, p.User.ID)
@@ -697,26 +698,7 @@ func loadPage(db *sql.DB, r *http.Request, p *Page, path string) {
 		}
 		p.Title = title
 		p.FormType = typ
-		monthRows, err := db.QueryContext(ctx, `SELECT month FROM (SELECT DISTINCT to_char(tarix,'YYYY-MM') AS month FROM gelirler WHERE istifadeci_id=$1 UNION SELECT DISTINCT to_char(tarix,'YYYY-MM') AS month FROM xercler WHERE istifadeci_id=$1) available_months ORDER BY month DESC`, p.User.ID, p.User.ID)
-		if err == nil {
-			for monthRows.Next() {
-				var availableMonth string
-				if monthRows.Scan(&availableMonth) == nil {
-					p.Months = append(p.Months, availableMonth)
-				}
-			}
-			monthRows.Close()
-		}
-		found := false
-		for _, availableMonth := range p.Months {
-			if availableMonth == p.Month {
-				found = true
-				break
-			}
-		}
-		if !found {
-			p.Months = append(p.Months, p.Month)
-		}
+		p.Months = availableMonths(ctx, db, p.User.ID, p.Month)
 		rows, _ := db.QueryContext(ctx, `SELECT id,ad,tip,COALESCE(limit_mebleq,0) FROM kateqoriyalar WHERE istifadeci_id=$1 AND tip=$2 ORDER BY ad`, p.User.ID, typ)
 		if rows != nil {
 			for rows.Next() {
@@ -787,4 +769,24 @@ func loadPage(db *sql.DB, r *http.Request, p *Page, path string) {
 		p.Title = "İcmal"
 		p.Active = "/"
 	}
+}
+
+func availableMonths(ctx context.Context, db *sql.DB, userID int64, selected string) []string {
+	months := make([]string, 0)
+	rows, err := db.QueryContext(ctx, `SELECT month FROM (SELECT DISTINCT to_char(tarix,'YYYY-MM') AS month FROM gelirler WHERE istifadeci_id=$1 UNION SELECT DISTINCT to_char(tarix,'YYYY-MM') AS month FROM xercler WHERE istifadeci_id=$1) available_months ORDER BY month DESC`, userID)
+	if err == nil {
+		for rows.Next() {
+			var value string
+			if rows.Scan(&value) == nil {
+				months = append(months, value)
+			}
+		}
+		rows.Close()
+	}
+	for _, value := range months {
+		if value == selected {
+			return months
+		}
+	}
+	return append(months, selected)
 }
