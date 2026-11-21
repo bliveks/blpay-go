@@ -27,6 +27,9 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// Registration can be reopened by setting this to true.
+const registrationEnabled = false
+
 //go:embed schema.sql templates/* web/*
 var files embed.FS
 
@@ -145,6 +148,10 @@ type Page struct {
 func HandlerFunc() http.Handler { return http.HandlerFunc(Handler) }
 func Handler(w http.ResponseWriter, r *http.Request) {
 	p := routePath(r)
+	if p == "/register" && !registrationEnabled {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
 	if p == "/goals" {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
@@ -521,7 +528,7 @@ func renderAuth(w http.ResponseWriter, r *http.Request, csrf, path, err string) 
 		kind = "register"
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_ = tmpl.ExecuteTemplate(w, "auth.html", map[string]any{"Kind": kind, "CSRF": csrf, "Error": err})
+	_ = tmpl.ExecuteTemplate(w, "auth.html", map[string]any{"Kind": kind, "CSRF": csrf, "Error": err, "RegistrationEnabled": registrationEnabled})
 }
 func handlePost(w http.ResponseWriter, r *http.Request, db *sql.DB, u *User, path string) bool {
 	ctx := r.Context()
