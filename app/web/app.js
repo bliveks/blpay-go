@@ -19,10 +19,10 @@
     const destination = new URL(link.href, window.location.href);
     if (destination.origin !== window.location.origin) return;
     if (destination.pathname === window.location.pathname && destination.search === window.location.search && destination.hash) return;
-    if (destination.href !== window.location.href) showPageLoading();
+    if (destination.href !== window.location.href) window.setTimeout(showPageLoading, 0);
   });
   document.addEventListener('submit', (event) => {
-    if (!event.defaultPrevented) showPageLoading();
+    if (!event.defaultPrevented) window.setTimeout(showPageLoading, 0);
   });
 
   const validMonth = (value) => /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
@@ -34,8 +34,10 @@
   const navigateWithoutMonthQuery = () => {
     const url = new URL(window.location.href);
     url.searchParams.delete('month');
-    showPageLoading();
-    window.location.assign(`${url.pathname}${url.search}${url.hash}`);
+    window.setTimeout(() => {
+      showPageLoading();
+      window.location.assign(`${url.pathname}${url.search}${url.hash}`);
+    }, 0);
   };
 
   const currentURL = new URL(window.location.href);
