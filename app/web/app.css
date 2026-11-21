@@ -45,3 +45,5 @@
 @media(max-width:720px){.topbar{height:70px;padding-top:8px}}
 
 .settings-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:18px}.settings-actions form{margin:0}
+
+@media(max-width:720px){.modal input[type=date]{display:block;box-sizing:border-box;min-width:0;max-width:100%;width:100%}}
