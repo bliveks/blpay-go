@@ -1,5 +1,42 @@
 (() => {
   let lastOpener = null;
+  let pageScrollLock = null;
+
+  const lockPageScroll = () => {
+    if (pageScrollLock) return;
+    const body = document.body;
+    const scrollY = window.scrollY;
+    const scrollbarWidth = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
+    pageScrollLock = {
+      scrollY,
+      rootOverflow: document.documentElement.style.overflow,
+      styles: {
+        position: body.style.position,
+        top: body.style.top,
+        left: body.style.left,
+        right: body.style.right,
+        width: body.style.width,
+        paddingRight: body.style.paddingRight,
+      },
+    };
+    document.documentElement.style.overflow = 'hidden';
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.left = '0';
+    body.style.right = '0';
+    body.style.width = '100%';
+    if (scrollbarWidth) body.style.paddingRight = `calc(${pageScrollLock.styles.paddingRight || '0px'} + ${scrollbarWidth}px)`;
+  };
+
+  const unlockPageScroll = () => {
+    if (!pageScrollLock) return;
+    const {scrollY, styles} = pageScrollLock;
+    const body = document.body;
+    document.documentElement.style.overflow = pageScrollLock.rootOverflow;
+    Object.assign(body.style, styles);
+    pageScrollLock = null;
+    window.scrollTo(0, scrollY);
+  };
 
   const pageLoading = document.getElementById('page-loading');
   const showPageLoading = () => {
@@ -104,8 +141,12 @@
       const dialog = document.getElementById(openButton.dataset.modalOpen);
       if (dialog instanceof HTMLDialogElement) {
         lastOpener = openButton;
+        lockPageScroll();
         dialog.showModal();
-        dialog.querySelector('input:not([type="hidden"]), select, textarea')?.focus();
+        const initialFocus = dialog.id === 'report-filter-modal'
+          ? dialog.querySelector('[data-modal-close]')
+          : dialog.querySelector('input:not([type="hidden"]), select, textarea');
+        initialFocus?.focus({preventScroll: true});
       }
       return;
     }
@@ -124,7 +165,10 @@
   });
 
   document.querySelectorAll('dialog.modal').forEach((dialog) => {
-    dialog.addEventListener('close', () => lastOpener?.focus());
+    dialog.addEventListener('close', () => {
+      if (!document.querySelector('dialog.modal[open]')) unlockPageScroll();
+      lastOpener?.focus({preventScroll: true});
+    });
   });
 
   const sidebar = document.getElementById('sidebar');
