@@ -138,6 +138,9 @@
 
   document.querySelectorAll('[data-category-type-filter]').forEach((filter) => {
     filter.addEventListener('change', () => {
+      document.querySelectorAll('[data-category-type-filter]').forEach((otherFilter) => {
+        otherFilter.value = filter.value;
+      });
       document.querySelectorAll('[data-category-type]').forEach((row) => {
         row.hidden = Boolean(filter.value) && row.dataset.categoryType !== filter.value;
       });
@@ -146,7 +149,7 @@
 
   document.querySelectorAll('[data-category-filter-toggle]').forEach((button) => {
     button.addEventListener('click', () => {
-      const filter = button.closest('th')?.querySelector('[data-category-type-filter]');
+      const filter = button.closest('[data-category-filter]')?.querySelector('[data-category-type-filter]');
       if (!filter) return;
       filter.hidden = !filter.hidden;
       if (!filter.hidden) filter.focus();

@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#147d57">
 <title>{{.Title}} · BlPay</title>
 <link rel="stylesheet" href="/assets/fontawesome.min.css">
-<link rel="stylesheet" href="/assets/app.css?v=8">
+<link rel="stylesheet" href="/assets/app.css?v=9">
 </head>
 <body>
 <div class="shell">
@@ -82,8 +82,8 @@
           </form>
         </dialog>
       {{else if eq .Active "/categories"}}
-        <article class="card"><div class="cardtitle"><h2>Kateqoriyalar</h2><span class="tag">{{len .Categories}}</span></div><div class="tablewrap"><table class="categories-table"><thead><tr><th>Ad</th><th><span class="category-type-heading">Tip <button class="category-filter-toggle" type="button" data-category-filter-toggle aria-label="Tip üzrə filtr" title="Tip üzrə filtr"><i class="fa-solid fa-filter" aria-hidden="true"></i></button></span><select class="category-type-filter" data-category-type-filter aria-label="Tipə görə seçin" hidden><option value="">Hamısı</option><option value="gelir">Gəlir</option><option value="xerc">Xərc</option></select></th><th>Limit</th><th></th></tr></thead><tbody>{{range .Categories}}
-          <tr data-category-type="{{.Type}}"><td><strong>{{.Name}}</strong></td><td>{{kind .Type}}</td><td>{{if gt .Limit 0.0}}{{money .Limit}}{{else}}—{{end}}</td><td><div class="actions"><button class="btn light icon-button" type="button" data-modal-open="category-edit-modal" data-category-edit data-id="{{.ID}}" data-name="{{.Name}}" data-type="{{.Type}}" data-limit="{{.Limit}}" aria-label="Düzəlt" title="Düzəlt"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i></button><form method="post" action="/categories" onsubmit="return confirm('Kateqoriyanı silmək istəyirsiniz?')"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{.ID}}"><button class="btn danger icon-button" aria-label="Sil" title="Sil"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button></form></div></td></tr>
+        <article class="card"><div class="cardtitle"><h2>Kateqoriyalar</h2><div class="category-title-actions"><div class="category-mobile-filter" data-category-filter><span>Tip</span><button class="category-filter-toggle" type="button" data-category-filter-toggle aria-label="Tip üzrə filtr" title="Tip üzrə filtr"><i class="fa-solid fa-filter" aria-hidden="true"></i></button><select class="category-type-filter" data-category-type-filter aria-label="Tipə görə seçin" hidden><option value="">Hamısı</option><option value="gelir">Gəlir</option><option value="xerc">Xərc</option></select></div><span class="tag">{{len .Categories}}</span></div></div><div class="tablewrap"><table class="categories-table"><thead><tr><th>Ad</th><th data-category-filter><span class="category-type-heading">Tip <button class="category-filter-toggle" type="button" data-category-filter-toggle aria-label="Tip üzrə filtr" title="Tip üzrə filtr"><i class="fa-solid fa-filter" aria-hidden="true"></i></button></span><select class="category-type-filter" data-category-type-filter aria-label="Tipə görə seçin" hidden><option value="">Hamısı</option><option value="gelir">Gəlir</option><option value="xerc">Xərc</option></select></th><th>Limit</th><th></th></tr></thead><tbody>{{range .Categories}}
+          <tr data-category-type="{{.Type}}"><td data-label="Ad"><strong>{{.Name}}</strong></td><td data-label="Tip">{{kind .Type}}</td><td data-label="Limit">{{if gt .Limit 0.0}}{{money .Limit}}{{else}}—{{end}}</td><td data-label=""><div class="actions"><button class="btn light icon-button" type="button" data-modal-open="category-edit-modal" data-category-edit data-id="{{.ID}}" data-name="{{.Name}}" data-type="{{.Type}}" data-limit="{{.Limit}}" aria-label="Düzəlt" title="Düzəlt"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i></button><form method="post" action="/categories" onsubmit="return confirm('Kateqoriyanı silmək istəyirsiniz?')"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{.ID}}"><button class="btn danger icon-button" aria-label="Sil" title="Sil"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button></form></div></td></tr>
         {{end}}</tbody></table></div><p class="footer-note">İstifadə olunan kateqoriyalar silinə bilməz.</p></article>
         <dialog class="modal" id="category-modal" aria-labelledby="category-modal-title">
           <div class="modal-header"><h2 id="category-modal-title">Yeni kateqoriya</h2><button class="modal-close" type="button" data-modal-close aria-label="Pəncərəni bağla"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>
@@ -116,6 +116,6 @@
   </main>
 </div>
 {{if or .Error .Success}}<div class="toast {{if .Success}}toast-ok{{else}}toast-error{{end}}" role="{{if .Error}}alert{{else}}status{{end}}" aria-live="{{if .Error}}assertive{{else}}polite{{end}}">{{if .Success}}{{.Success}}{{else}}{{.Error}}{{end}}</div>{{end}}
-<script src="/assets/app.js?v=5" defer></script>
+<script src="/assets/app.js?v=6" defer></script>
 </body>
 </html>
