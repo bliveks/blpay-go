@@ -109,6 +109,18 @@
   }
 
   document.addEventListener('click', (event) => {
+    const expenseTemplate = event.target.closest('[data-expense-template]');
+    if (expenseTemplate) {
+      const form = document.querySelector('#transaction-modal form');
+      if (form) {
+        form.elements.namedItem('amount').value = expenseTemplate.dataset.amount;
+        form.elements.namedItem('category').value = expenseTemplate.dataset.category;
+        form.elements.namedItem('date').value = expenseTemplate.dataset.date;
+        form.elements.namedItem('account').value = expenseTemplate.dataset.account;
+        form.elements.namedItem('note').value = expenseTemplate.dataset.note;
+      }
+    }
+
     const categoryEditButton = event.target.closest('[data-category-edit]');
     if (categoryEditButton) {
       const form = document.querySelector('#category-edit-modal form');

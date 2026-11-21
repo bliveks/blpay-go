@@ -112,10 +112,10 @@ type Insight struct {
 	Message, Icon, Tone string
 }
 type ExpenseTemplate struct {
-	CategoryID             int64
-	Category, Account, Note string
-	Icon                   string
-	Amount                 float64
+	CategoryID                            int64
+	Category, CategoryName, Account, Note string
+	Icon                                  string
+	Amount                                float64
 }
 type Page struct {
 	Title, Active, Name, Email, Error, Success, CSRF, Month, CurrentMonth string
@@ -780,32 +780,26 @@ func loadPage(db *sql.DB, r *http.Request, p *Page, path string) {
 		_ = db.QueryRowContext(ctx, `SELECT COALESCE((SELECT SUM(mebleq) FROM gelirler WHERE istifadeci_id=$1 AND to_char(tarix,'YYYY-MM')=$2),0),COALESCE((SELECT SUM(mebleq) FROM xercler WHERE istifadeci_id=$1 AND to_char(tarix,'YYYY-MM')=$2),0)`, p.User.ID, p.CurrentMonth).Scan(&p.Income, &p.Expense)
 		p.Balance = p.Income - p.Expense
 		p.Insights = dashboardInsights(ctx, db, p.User.ID, time.Now())
-		templates, templateErr := db.QueryContext(ctx, `
-			SELECT x.kateqoriya_id,k.ad,x.mebleq,x.hesab_novu,COALESCE(x.qeyd,'')
-			FROM xercler x
-			JOIN kateqoriyalar k ON k.id=x.kateqoriya_id
-			WHERE x.istifadeci_id=$1 AND k.istifadeci_id=$1 AND x.tarix >= CURRENT_DATE - INTERVAL '90 days'
-			GROUP BY x.kateqoriya_id,k.ad,x.mebleq,x.hesab_novu,COALESCE(x.qeyd,'')
-			HAVING COUNT(*) >= 2
-			ORDER BY COUNT(*) DESC,MAX(x.tarix) DESC
-			LIMIT 6`, p.User.ID)
-		if templateErr == nil {
-			defer templates.Close()
-			for templates.Next() {
-				var item ExpenseTemplate
-				if templates.Scan(&item.CategoryID, &item.Category, &item.Amount, &item.Account, &item.Note) == nil {
-					switch item.Category {
-					case "Nəqliyyat":
-						item.Icon = "fa-bus"
-					case "Qida":
-						item.Icon = "fa-basket-shopping"
-					case "Kommunal":
-						item.Icon = "fa-plug"
-					default:
-						item.Icon = "fa-repeat"
+		presetCategories := map[string]int64{}
+		if rows, err := db.QueryContext(ctx, `SELECT id,ad,tip,COALESCE(limit_mebleq,0) FROM kateqoriyalar WHERE istifadeci_id=$1 AND tip='xerc' ORDER BY ad`, p.User.ID); err == nil {
+			defer rows.Close()
+			for rows.Next() {
+				var category Category
+				if rows.Scan(&category.ID, &category.Name, &category.Type, &category.Limit) == nil {
+					p.Categories = append(p.Categories, category)
+					if category.Name == "Nəqliyyat" || category.Name == "Qida" {
+						presetCategories[category.Name] = category.ID
 					}
-					p.ExpenseTemplates = append(p.ExpenseTemplates, item)
 				}
+			}
+		}
+		for _, item := range []ExpenseTemplate{
+			{Category: "Nəqliyyat", CategoryName: "Yol", Amount: 2.9, Account: "nagd", Note: "Yol xərci", Icon: "fa-bus"},
+			{Category: "Qida", CategoryName: "Çörək", Amount: 0.6, Account: "nagd", Note: "Çörək", Icon: "fa-bread-slice"},
+		} {
+			if id, ok := presetCategories[item.Category]; ok {
+				item.CategoryID = id
+				p.ExpenseTemplates = append(p.ExpenseTemplates, item)
 			}
 		}
 		rows, e := db.QueryContext(ctx, `SELECT x.id,k.ad,x.mebleq,x.tarix::text,x.hesab_novu,x.qeyd,x.kind FROM (SELECT id,kateqoriya_id,mebleq,tarix,hesab_novu,qeyd,'gelir' kind,istifadeci_id FROM gelirler UNION ALL SELECT id,kateqoriya_id,mebleq,tarix,hesab_novu,qeyd,'xerc' kind,istifadeci_id FROM xercler) x JOIN kateqoriyalar k ON k.id=x.kateqoriya_id WHERE x.istifadeci_id=$1 ORDER BY x.tarix DESC,x.id DESC LIMIT 8`, p.User.ID)
