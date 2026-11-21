@@ -143,4 +143,13 @@
       });
     });
   });
+
+  document.querySelectorAll('[data-category-filter-toggle]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const filter = button.closest('th')?.querySelector('[data-category-type-filter]');
+      if (!filter) return;
+      filter.hidden = !filter.hidden;
+      if (!filter.hidden) filter.focus();
+    });
+  });
 })();
