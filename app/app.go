@@ -794,7 +794,7 @@ func loadPage(db *sql.DB, r *http.Request, p *Page, path string) {
 		p.Month = month
 	}
 	if path == "/" || path == "/dashboard" {
-		p.Title = "İcmal"
+		p.Title = "Ana səhifə"
 		p.Months = availableMonths(ctx, db, p.User.ID, p.Month)
 		_ = db.QueryRowContext(ctx, `SELECT COALESCE((SELECT SUM(mebleq) FROM gelirler WHERE istifadeci_id=$1 AND to_char(tarix,'YYYY-MM')=$2),0),COALESCE((SELECT SUM(mebleq) FROM xercler WHERE istifadeci_id=$1 AND to_char(tarix,'YYYY-MM')=$2),0)`, p.User.ID, p.CurrentMonth).Scan(&p.Income, &p.Expense)
 		p.Balance = p.Income - p.Expense
@@ -938,7 +938,7 @@ func loadPage(db *sql.DB, r *http.Request, p *Page, path string) {
 			rows.Close()
 		}
 	default:
-		p.Title = "İcmal"
+		p.Title = "Ana səhifə"
 		p.Active = "/"
 	}
 }
