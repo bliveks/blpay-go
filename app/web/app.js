@@ -160,29 +160,43 @@
   const reportRows = Array.from(document.querySelectorAll('[data-report-row]'));
   if (reportFilters.length && reportRows.length) {
     const emptyRow = document.querySelector('.report-filter-empty');
+    const amountFilter = reportFilters.find((filter) => filter.dataset.reportFilter === 'amount');
+    const totalOutput = document.querySelector('[data-report-total]');
+    const matchesFilter = (row, filter) => {
+      const value = filter.value;
+      if (!value) return true;
+      const field = filter.dataset.reportFilter;
+      if (field === 'amount') return Number(row.dataset.amount).toFixed(2) === value;
+      if (field === 'note' && value === '__empty__') return !row.dataset.note;
+      return row.dataset[field] === value;
+    };
+    const updateAmountOptions = () => {
+      if (!amountFilter) return;
+      const selected = amountFilter.value;
+      const available = [...new Set(reportRows
+        .filter((row) => reportFilters.filter((filter) => filter !== amountFilter).every((filter) => matchesFilter(row, filter)))
+        .map((row) => Number(row.dataset.amount).toFixed(2)))].sort((a, b) => Number(a) - Number(b));
+      amountFilter.replaceChildren(new Option('Hamısı', ''));
+      available.forEach((amount) => amountFilter.add(new Option(amount, amount)));
+      amountFilter.value = available.includes(selected) ? selected : '';
+    };
     const applyReportFilters = () => {
+      updateAmountOptions();
       let visibleCount = 0;
+      let visibleTotal = 0;
       for (const row of reportRows) {
-        const matches = reportFilters.every((filter) => {
-          const value = filter.value;
-          if (!value) return true;
-          const field = filter.dataset.reportFilter;
-          if (field === 'amount') {
-            const amount = Number(row.dataset.amount);
-            if (value === 'under10') return amount < 10;
-            if (value === '10-50') return amount >= 10 && amount < 50;
-            if (value === '50-100') return amount >= 50 && amount < 100;
-            if (value === '100plus') return amount >= 100;
-          }
-          if (field === 'note' && value === '__empty__') return !row.dataset.note;
-          return row.dataset[field] === value;
-        });
+        const matches = reportFilters.every((filter) => matchesFilter(row, filter));
         row.hidden = !matches;
-        if (matches) visibleCount += 1;
+        if (matches) {
+          visibleCount += 1;
+          visibleTotal += Number(row.dataset.amount);
+        }
       }
+      if (totalOutput) totalOutput.textContent = visibleTotal.toFixed(2);
       if (emptyRow) emptyRow.hidden = visibleCount !== 0;
     };
     reportFilters.forEach((filter) => filter.addEventListener('change', applyReportFilters));
+    applyReportFilters();
   }
 
   document.addEventListener('click', (event) => {
