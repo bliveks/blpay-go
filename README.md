@@ -6,7 +6,7 @@ BlPay şəxsi maliyyə idarəetmə tətbiqinin Go ilə yenidən qurulmuş versiy
 
 - Hesab yaratma, giriş və təhlükəsiz sessiya kukisi
 - Gəlir və xərc qeydləri, kateqoriyalar və aylıq limitlər
-- Maliyyə hədəfləri və hədəf məbləğini artırma/azaltma
+- Gəlir, xərc və kateqoriya əlavə etmə formaları modal pəncərədə açılır
 - Aylıq xülasə və kateqoriyalara görə hesabatlar
 - Admin istifadəçi idarəetməsi
 - Font Awesome Free ikonları, tətbiqlə birlikdə host olunur

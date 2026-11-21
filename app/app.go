@@ -93,18 +93,12 @@ type Tx struct {
 	Amount                        float64
 	Kind                          string
 }
-type Goal struct {
-	ID                                 int64
-	Name, Status, Priority, Start, End string
-	Target, Current                    float64
-}
 type Page struct {
 	Title, Active, Name, Email, Error, Success, CSRF, Month string
 	User                                                    *User
 	Income, Expense, Balance                                float64
 	Transactions                                            []Tx
 	Categories                                              []Category
-	Goals                                                   []Goal
 	Items                                                   []map[string]any
 	IsAdmin                                                 bool
 	FormType                                                string
@@ -113,6 +107,10 @@ type Page struct {
 func HandlerFunc() http.Handler { return http.HandlerFunc(Handler) }
 func Handler(w http.ResponseWriter, r *http.Request) {
 	p := routePath(r)
+	if p == "/goals" {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
 	if strings.HasPrefix(p, "/assets/") {
 		serveAsset(w, r, p)
 		return
@@ -175,7 +173,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Qadağandır", http.StatusForbidden)
 		return
 	}
-	if p != "/" && p != "/dashboard" && p != "/income" && p != "/expenses" && p != "/categories" && p != "/goals" && p != "/reports" && p != "/settings" && p != "/admin" {
+	if p != "/" && p != "/dashboard" && p != "/income" && p != "/expenses" && p != "/categories" && p != "/reports" && p != "/settings" && p != "/admin" {
 		http.NotFound(w, r)
 		return
 	}
@@ -444,7 +442,17 @@ func handlePost(w http.ResponseWriter, r *http.Request, db *sql.DB, u *User, pat
 		action := f("action")
 		id, _ := strconv.ParseInt(f("id"), 10, 64)
 		if action == "delete" {
-			_ = q(`DELETE FROM `+table+` WHERE id=$1 AND istifadeci_id=$2`, id, u.ID)
+			result, err := db.ExecContext(ctx, `DELETE FROM `+table+` WHERE id=$1 AND istifadeci_id=$2`, id, u.ID)
+			if err != nil {
+				redirect(w, r, path, "err", "Əməliyyatı silmək mümkün olmadı.")
+				return true
+			}
+			if affected, _ := result.RowsAffected(); affected == 0 {
+				redirect(w, r, path, "err", "Əməliyyat tapılmadı.")
+				return true
+			}
+			redirect(w, r, path, "ok", "Əməliyyat silindi.")
+			return true
 		} else {
 			amount, e := strconv.ParseFloat(f("amount"), 64)
 			cat, _ := strconv.ParseInt(f("category"), 10, 64)
@@ -459,33 +467,70 @@ func handlePost(w http.ResponseWriter, r *http.Request, db *sql.DB, u *User, pat
 			}
 			if typ == "xerc" {
 				var limit, spent float64
-				_ = db.QueryRowContext(ctx, `SELECT COALESCE(limit_mebleq,0) FROM kateqoriyalar WHERE id=$1 AND istifadeci_id=$2`, cat, u.ID).Scan(&limit)
+				if err := db.QueryRowContext(ctx, `SELECT COALESCE(limit_mebleq,0) FROM kateqoriyalar WHERE id=$1 AND istifadeci_id=$2`, cat, u.ID).Scan(&limit); err != nil {
+					redirect(w, r, path, "err", "Kateqoriya limitini oxumaq mümkün olmadı.")
+					return true
+				}
 				if limit > 0 {
-					_ = db.QueryRowContext(ctx, `SELECT COALESCE(SUM(mebleq),0) FROM xercler WHERE istifadeci_id=$1 AND kateqoriya_id=$2 AND to_char(tarix,'YYYY-MM')=$3 AND ($4=0 OR id<>$4)`, u.ID, cat, date[:7], id).Scan(&spent)
+					if err := db.QueryRowContext(ctx, `SELECT COALESCE(SUM(mebleq),0) FROM xercler WHERE istifadeci_id=$1 AND kateqoriya_id=$2 AND to_char(tarix,'YYYY-MM')=$3 AND ($4=0 OR id<>$4)`, u.ID, cat, date[:7], id).Scan(&spent); err != nil {
+						redirect(w, r, path, "err", "Aylıq xərcləri hesablamaq mümkün olmadı.")
+						return true
+					}
 					if spent+amount > limit {
 						redirect(w, r, path, "err", "Bu əməliyyat kateqoriyanın aylıq limitini keçəcək.")
 						return true
 					}
 				}
 			}
+			var result sql.Result
+			var err error
 			if action == "edit" {
-				_ = q(`UPDATE `+table+` SET mebleq=$1,kateqoriya_id=$2,tarix=$3,hesab_novu=$4,qeyd=$5 WHERE id=$6 AND istifadeci_id=$7`, amount, cat, date, account, note, id, u.ID)
+				result, err = db.ExecContext(ctx, `UPDATE `+table+` SET mebleq=$1,kateqoriya_id=$2,tarix=$3,hesab_novu=$4,qeyd=$5 WHERE id=$6 AND istifadeci_id=$7`, amount, cat, date, account, note, id, u.ID)
 			} else {
-				_ = q(`INSERT INTO `+table+`(istifadeci_id,mebleq,kateqoriya_id,tarix,hesab_novu,qeyd) VALUES($1,$2,$3,$4,$5,$6)`, u.ID, amount, cat, date, account, note)
+				result, err = db.ExecContext(ctx, `INSERT INTO `+table+`(istifadeci_id,mebleq,kateqoriya_id,tarix,hesab_novu,qeyd) VALUES($1,$2,$3,$4,$5,$6)`, u.ID, amount, cat, date, account, note)
 			}
+			if err != nil {
+				redirect(w, r, path, "err", "Əməliyyatı yadda saxlamaq mümkün olmadı.")
+				return true
+			}
+			if action == "edit" {
+				if affected, _ := result.RowsAffected(); affected == 0 {
+					redirect(w, r, path, "err", "Əməliyyat tapılmadı.")
+					return true
+				}
+			}
+			message := "Əməliyyat əlavə edildi."
+			if action == "edit" {
+				message = "Əməliyyat yeniləndi."
+			}
+			redirect(w, r, path, "ok", message)
+			return true
 		}
-		redirect(w, r, path, "ok", "Yadda saxlanıldı")
-		return true
 	case "/categories":
 		id, _ := strconv.ParseInt(f("id"), 10, 64)
 		switch f("action") {
 		case "delete":
-			_ = q(`DELETE FROM kateqoriyalar k WHERE id=$1 AND istifadeci_id=$2 AND NOT EXISTS(SELECT 1 FROM gelirler WHERE kateqoriya_id=k.id) AND NOT EXISTS(SELECT 1 FROM xercler WHERE kateqoriya_id=k.id)`, id, u.ID)
+			result, err := db.ExecContext(ctx, `DELETE FROM kateqoriyalar k WHERE id=$1 AND istifadeci_id=$2 AND NOT EXISTS(SELECT 1 FROM gelirler WHERE kateqoriya_id=k.id) AND NOT EXISTS(SELECT 1 FROM xercler WHERE kateqoriya_id=k.id)`, id, u.ID)
+			if err != nil {
+				redirect(w, r, path, "err", "Kateqoriyanı silmək mümkün olmadı.")
+				return true
+			}
+			if affected, _ := result.RowsAffected(); affected == 0 {
+				redirect(w, r, path, "err", "İstifadə olunan və ya mövcud olmayan kateqoriya silinə bilməz.")
+				return true
+			}
+			redirect(w, r, path, "ok", "Kateqoriya silindi.")
+			return true
 		case "add", "edit":
 			name := strings.TrimSpace(f("name"))
 			typ := f("type")
-			limit, _ := strconv.ParseFloat(f("limit"), 64)
-			if name == "" || (typ != "gelir" && typ != "xerc") {
+			limit := float64(0)
+			limitText := strings.TrimSpace(f("limit"))
+			var limitErr error
+			if typ == "xerc" && limitText != "" {
+				limit, limitErr = strconv.ParseFloat(limitText, 64)
+			}
+			if name == "" || (typ != "gelir" && typ != "xerc") || limitErr != nil || limit < 0 {
 				redirect(w, r, path, "err", "Kateqoriya məlumatlarını yoxlayın.")
 				return true
 			}
@@ -495,68 +540,38 @@ func handlePost(w http.ResponseWriter, r *http.Request, db *sql.DB, u *User, pat
 			}
 			if f("action") == "edit" {
 				var currentType string
-				_ = db.QueryRowContext(ctx, `SELECT tip FROM kateqoriyalar WHERE id=$1 AND istifadeci_id=$2`, id, u.ID).Scan(&currentType)
+				if err := db.QueryRowContext(ctx, `SELECT tip FROM kateqoriyalar WHERE id=$1 AND istifadeci_id=$2`, id, u.ID).Scan(&currentType); err != nil {
+					redirect(w, r, path, "err", "Kateqoriya tapılmadı.")
+					return true
+				}
 				if currentType != typ {
 					var used int
-					_ = db.QueryRowContext(ctx, `SELECT (SELECT count(*) FROM gelirler WHERE kateqoriya_id=$1)+(SELECT count(*) FROM xercler WHERE kateqoriya_id=$1)`, id).Scan(&used)
+					if err := db.QueryRowContext(ctx, `SELECT (SELECT count(*) FROM gelirler WHERE kateqoriya_id=$1)+(SELECT count(*) FROM xercler WHERE kateqoriya_id=$1)`, id).Scan(&used); err != nil {
+						redirect(w, r, path, "err", "Kateqoriya istifadəsini yoxlamaq mümkün olmadı.")
+						return true
+					}
 					if used > 0 {
 						redirect(w, r, path, "err", "Əməliyyatlarda istifadə olunan kateqoriyanın tipini dəyişmək olmur.")
 						return true
 					}
 				}
-				_ = q(`UPDATE kateqoriyalar SET ad=$1,tip=$2,limit_mebleq=$3 WHERE id=$4 AND istifadeci_id=$5`, name, typ, lim, id, u.ID)
-			} else {
-				_ = q(`INSERT INTO kateqoriyalar(istifadeci_id,ad,tip,limit_mebleq) VALUES($1,$2,$3,$4)`, u.ID, name, typ, lim)
-			}
-		}
-		redirect(w, r, path, "ok", "Kateqoriya yeniləndi")
-		return true
-	case "/goals":
-		id, _ := strconv.ParseInt(f("id"), 10, 64)
-		switch f("action") {
-		case "delete":
-			_ = q(`DELETE FROM hedefler WHERE id=$1 AND istifadeci_id=$2`, id, u.ID)
-		case "add":
-			target, _ := strconv.ParseFloat(f("target"), 64)
-			if target <= 0 || strings.TrimSpace(f("name")) == "" {
-				redirect(w, r, path, "err", "Hədəf məlumatlarını yoxlayın.")
-				return true
-			}
-			_, _ = db.ExecContext(ctx, `INSERT INTO hedefler(istifadeci_id,ad,hedef_mebleq,baslangic_tarixi,hedef_tarixi,prioritet,qeyd) VALUES($1,$2,$3,$4,$5,$6,$7)`, u.ID, f("name"), target, f("start"), f("end"), f("priority"), f("note"))
-		case "cancel":
-			_ = q(`UPDATE hedefler SET status='legv_edilib' WHERE id=$1 AND istifadeci_id=$2 AND status='aktiv'`, id, u.ID)
-		case "contribute":
-			amount, _ := strconv.ParseFloat(f("amount"), 64)
-			kind := f("kind")
-			if amount > 0 && (kind == "artirma" || kind == "azaltma") {
-				tx, _ := db.BeginTx(ctx, nil)
-				if tx != nil {
-					var goalID int64
-					var cur float64
-					err := tx.QueryRowContext(ctx, `SELECT id,cari_mebleq FROM hedefler WHERE id=$1 AND istifadeci_id=$2 AND status='aktiv' FOR UPDATE`, id, u.ID).Scan(&goalID, &cur)
-					if err == nil {
-						next := cur + amount
-						if kind == "azaltma" {
-							next = cur - amount
-						}
-						if next < 0 {
-							next = 0
-						}
-						_, err = tx.ExecContext(ctx, `UPDATE hedefler SET cari_mebleq=$1,status=CASE WHEN $1>=hedef_mebleq THEN 'tamamlanib' ELSE status END WHERE id=$2`, next, id)
-						if err == nil {
-							_, err = tx.ExecContext(ctx, `INSERT INTO hedef_emeliyyatlar(hedef_id,istifadeci_id,mebleq,emeliyyat_novu,tarix) VALUES($1,$2,$3,$4,CURRENT_DATE)`, id, u.ID, amount, kind)
-						}
-					}
-					if err == nil {
-						_ = tx.Commit()
-					} else {
-						_ = tx.Rollback()
-					}
+				if err := q(`UPDATE kateqoriyalar SET ad=$1,tip=$2,limit_mebleq=$3 WHERE id=$4 AND istifadeci_id=$5`, name, typ, lim, id, u.ID); err != nil {
+					redirect(w, r, path, "err", "Kateqoriyanı yeniləmək mümkün olmadı.")
+					return true
 				}
+				redirect(w, r, path, "ok", "Kateqoriya yeniləndi.")
+			} else {
+				if err := q(`INSERT INTO kateqoriyalar(istifadeci_id,ad,tip,limit_mebleq) VALUES($1,$2,$3,$4)`, u.ID, name, typ, lim); err != nil {
+					redirect(w, r, path, "err", "Kateqoriyanı əlavə etmək mümkün olmadı.")
+					return true
+				}
+				redirect(w, r, path, "ok", "Kateqoriya əlavə edildi.")
 			}
+			return true
+		default:
+			redirect(w, r, path, "err", "Naməlum kateqoriya əməliyyatı.")
+			return true
 		}
-		redirect(w, r, path, "ok", "Hədəflər yeniləndi")
-		return true
 	case "/settings":
 		name := strings.TrimSpace(f("name"))
 		surname := strings.TrimSpace(f("surname"))
@@ -614,7 +629,6 @@ func loadPage(db *sql.DB, r *http.Request, p *Page, path string) {
 				p.Transactions = append(p.Transactions, x)
 			}
 		}
-		goals(db, ctx, p, false)
 		return
 	}
 	switch path {
@@ -656,9 +670,6 @@ func loadPage(db *sql.DB, r *http.Request, p *Page, path string) {
 			}
 			rows.Close()
 		}
-	case "/goals":
-		p.Title = "Maliyyə hədəfləri"
-		goals(db, ctx, p, true)
 	case "/reports":
 		p.Title = "Hesabatlar"
 		_ = db.QueryRowContext(ctx, `SELECT COALESCE((SELECT SUM(mebleq) FROM gelirler WHERE istifadeci_id=$1 AND to_char(tarix,'YYYY-MM')=$2),0),COALESCE((SELECT SUM(mebleq) FROM xercler WHERE istifadeci_id=$1 AND to_char(tarix,'YYYY-MM')=$2),0)`, p.User.ID, month).Scan(&p.Income, &p.Expense)
@@ -698,22 +709,5 @@ func loadPage(db *sql.DB, r *http.Request, p *Page, path string) {
 	default:
 		p.Title = "İcmal"
 		p.Active = "/"
-	}
-}
-func goals(db *sql.DB, ctx context.Context, p *Page, all bool) {
-	query := `SELECT id,ad,status,prioritet,baslangic_tarixi::text,hedef_tarixi::text,hedef_mebleq,cari_mebleq FROM hedefler WHERE istifadeci_id=$1`
-	if !all {
-		query += ` AND status='aktiv'`
-	}
-	query += ` ORDER BY CASE status WHEN 'aktiv' THEN 0 ELSE 1 END,hedef_tarixi LIMIT 10`
-	rows, e := db.QueryContext(ctx, query, p.User.ID)
-	if e != nil {
-		return
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var g Goal
-		_ = rows.Scan(&g.ID, &g.Name, &g.Status, &g.Priority, &g.Start, &g.End, &g.Target, &g.Current)
-		p.Goals = append(p.Goals, g)
 	}
 }
