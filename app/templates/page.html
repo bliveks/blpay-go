@@ -40,8 +40,6 @@
           <button class="btn" type="button" data-modal-open="category-modal"><i class="fa-solid fa-plus" aria-hidden="true"></i> Kateqoriya əlavə et</button>
         {{end}}
       </div>
-      {{if .Error}}<div class="alert">{{.Error}}</div>{{end}}
-      {{if .Success}}<div class="alert ok">{{.Success}}</div>{{end}}
       {{if eq .Active "/"}}
         <section class="grid stats">
           <article class="card stat"><div class="stathead"><span>Bu ay gəlir</span><span class="staticon"><i class="fa-solid fa-arrow-trend-up" aria-hidden="true"></i></span></div><div class="amount positive">{{money .Income}}</div><div class="hint">{{month .Month}} üzrə daxilolmalar</div></article>
@@ -99,6 +97,7 @@
     </div>
   </main>
 </div>
+{{if or .Error .Success}}<div class="toast {{if .Success}}toast-ok{{else}}toast-error{{end}}" role="{{if .Error}}alert{{else}}status{{end}}" aria-live="{{if .Error}}assertive{{else}}polite{{end}}">{{if .Success}}{{.Success}}{{else}}{{.Error}}{{end}}</div>{{end}}
 <script src="/assets/app.js" defer></script>
 </body>
 </html>

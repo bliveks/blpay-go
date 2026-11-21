@@ -13,7 +13,6 @@ import (
 	"log"
 	"net/http"
 	"net/mail"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -182,8 +181,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		page.Month = time.Now().Format("2006-01")
 	}
 	loadPage(db, r, &page, p)
-	page.Success = r.URL.Query().Get("ok")
-	page.Error = r.URL.Query().Get("err")
+	page.Success, page.Error = takeFlash(w, r)
 	if err := tmpl.ExecuteTemplate(w, "page.html", page); err != nil {
 		log.Printf("template: %v", err)
 	}
@@ -333,10 +331,40 @@ func validCSRF(r *http.Request) bool {
 	return hmac.Equal([]byte(c.Value), []byte(r.FormValue("csrf")))
 }
 func redirect(w http.ResponseWriter, r *http.Request, path, key, msg string) {
-	http.Redirect(w, r, path+"?"+key+"="+urlQuery(msg), http.StatusSeeOther)
+	value := base64.RawURLEncoding.EncodeToString([]byte(key + "\x00" + msg))
+	http.SetCookie(w, &http.Cookie{
+		Name: "blpay_flash", Value: value + "." + sign(value), Path: "/",
+		HttpOnly: true, Secure: r.TLS != nil || r.Header.Get("x-forwarded-proto") == "https",
+		SameSite: http.SameSiteLaxMode, MaxAge: 60,
+	})
+	http.Redirect(w, r, path, http.StatusSeeOther)
 }
-func urlQuery(s string) string {
-	return url.QueryEscape(s)
+func takeFlash(w http.ResponseWriter, r *http.Request) (success, failure string) {
+	http.SetCookie(w, &http.Cookie{Name: "blpay_flash", Value: "", Path: "/", HttpOnly: true, Secure: r.TLS != nil || r.Header.Get("x-forwarded-proto") == "https", SameSite: http.SameSiteLaxMode, MaxAge: -1})
+	c, err := r.Cookie("blpay_flash")
+	if err != nil {
+		return "", ""
+	}
+	value, signature, ok := strings.Cut(c.Value, ".")
+	if !ok || !hmac.Equal([]byte(signature), []byte(sign(value))) {
+		return "", ""
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(value)
+	if err != nil {
+		return "", ""
+	}
+	key, message, ok := strings.Cut(string(payload), "\x00")
+	if !ok {
+		return "", ""
+	}
+	switch key {
+	case "ok":
+		return message, ""
+	case "err":
+		return "", message
+	default:
+		return "", ""
+	}
 }
 func login(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	email := strings.ToLower(strings.TrimSpace(r.FormValue("email")))

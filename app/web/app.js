@@ -1,6 +1,14 @@
 (() => {
   let lastOpener = null;
 
+  const toast = document.querySelector('.toast');
+  if (toast) {
+    window.setTimeout(() => {
+      toast.classList.add('toast-hidden');
+      window.setTimeout(() => toast.remove(), 250);
+    }, 5000);
+  }
+
   document.addEventListener('click', (event) => {
     const openButton = event.target.closest('[data-modal-open]');
     if (openButton) {
