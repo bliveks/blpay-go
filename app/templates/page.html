@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png?v=1">
 <link rel="icon" type="image/png" sizes="180x180" href="/assets/apple-touch-icon.png?v=1">
 <link rel="stylesheet" href="/assets/fontawesome.min.css">
-<link rel="stylesheet" href="/assets/app.css?v=24">
+<link rel="stylesheet" href="/assets/app.css?v=25">
 </head>
 <body>
 <div class="shell">
@@ -46,7 +46,7 @@
         {{end}}
       </div>
       {{if eq .Active "/"}}
-        <section class="grid stats">
+        <section class="grid stats report-stats">
           <article class="card stat"><div class="stathead"><span>Bu ay gəlir</span><span class="staticon"><i class="fa-solid fa-arrow-trend-up" aria-hidden="true"></i></span></div><div class="amount positive">{{money .Income}}</div></article>
           <article class="card stat"><div class="stathead"><span>Bu ay xərc</span><span class="staticon red"><i class="fa-solid fa-arrow-trend-down" aria-hidden="true"></i></span></div><div class="amount negative">{{money .Expense}}</div></article>
           <article class="card stat"><div class="stathead"><span>Bu ay balans</span><span class="staticon"><i class="fa-solid fa-wallet" aria-hidden="true"></i></span></div><div class="amount">{{money .Balance}}</div></article>
@@ -129,7 +129,7 @@
           <div class="report-filter-actions"><button class="btn light" type="button" data-report-filter-reset>Təmizlə</button><button class="btn" type="button" data-modal-close>Bağla</button></div>
         </form></dialog></article>
       {{else if eq .Active "/settings"}}
-        <section class="card"><div class="cardtitle"><h2>Profil məlumatları</h2></div><form method="post" action="/settings"><input type="hidden" name="csrf" value="{{.CSRF}}"><div class="inline"><div><label class="formlabel">Ad</label><input class="input" name="name" value="{{.User.First}}" required></div><div><label class="formlabel">Soyad</label><input class="input" name="surname" value="{{.User.Last}}" required></div></div><label class="formlabel">E-poçt</label><input class="input" value="{{.User.Email}}" disabled><button class="btn" style="margin-top:18px" type="submit">Yadda saxla</button></form><form method="post" action="/logout" style="margin-top:12px"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn danger" type="submit"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Hesabdan çıxış et</button></form></section>
+        <section class="card"><div class="cardtitle"><h2>Profil məlumatları</h2></div><form id="settings-profile-form" method="post" action="/settings"><input type="hidden" name="csrf" value="{{.CSRF}}"><div class="inline"><div><label class="formlabel">Ad</label><input class="input" name="name" value="{{.User.First}}" required></div><div><label class="formlabel">Soyad</label><input class="input" name="surname" value="{{.User.Last}}" required></div></div><label class="formlabel">E-poçt</label><input class="input" value="{{.User.Email}}" disabled></form><div class="settings-actions"><button class="btn" form="settings-profile-form" type="submit">Yadda saxla</button><form method="post" action="/logout"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn danger" type="submit"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Hesabdan çıxış et</button></form></div></section>
       {{else if eq .Active "/admin"}}
         <section class="grid stats">{{range .Items}}{{if not .ID}}<article class="card stat"><div class="stathead">{{.Name}}</div><div class="amount">{{.Amount}}</div></article>{{end}}{{end}}</section><article class="card"><div class="cardtitle"><h2>İstifadəçilər</h2></div><div class="tablewrap"><table><thead><tr><th>Ad</th><th>E-poçt</th><th>Rol</th><th>Status</th><th>Əməliyyat</th></tr></thead><tbody>{{range .Items}}{{if .ID}}<tr><td>{{.Name}}</td><td>{{.Email}}</td><td>{{.Role}}</td><td>{{.Status}}</td><td><div class="actions"><form method="post" action="/admin"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="id" value="{{.ID}}"><input type="hidden" name="action" value="role"><input type="hidden" name="role" value="{{if eq .Role "admin"}}user{{else}}admin{{end}}"><button class="btn light" type="submit">Rol</button></form><form method="post" action="/admin"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="id" value="{{.ID}}"><input type="hidden" name="action" value="status"><input type="hidden" name="status" value="{{if eq .Status "aktiv"}}deaktiv{{else}}aktiv{{end}}"><button class="btn light" type="submit">{{if eq .Status "aktiv"}}Deaktiv et{{else}}Aktiv et{{end}}</button></form></div></td></tr>{{end}}{{end}}</tbody></table></div></article>
       {{end}}
