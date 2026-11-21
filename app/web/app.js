@@ -301,4 +301,12 @@
       }
     });
   });
+
+  if (window.location.hash === '#quick-add') {
+    const openTransactionButton = document.querySelector('[data-modal-open="transaction-modal"]');
+    if (openTransactionButton) {
+      window.history.replaceState({}, '', `${window.location.pathname}${window.location.search}`);
+      openTransactionButton.click();
+    }
+  }
 })();
