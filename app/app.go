@@ -673,7 +673,7 @@ func loadPage(db *sql.DB, r *http.Request, p *Page, path string) {
 		isIncome := path == "/income"
 		table, typ, title := "xercler", "xerc", "Xərclər"
 		if isIncome {
-			table, typ, title = "gelirler", "gelir", "Gəlirlər"
+			table, typ, title = "gelirler", "gelir", "Toplam gəlirlər"
 		}
 		p.Title = title
 		p.FormType = typ
