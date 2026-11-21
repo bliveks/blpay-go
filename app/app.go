@@ -101,7 +101,7 @@ type Tx struct {
 	Kind                          string
 }
 type Page struct {
-	Title, Active, Name, Email, Error, Success, CSRF, Month string
+	Title, Active, Name, Email, Error, Success, CSRF, Month, CurrentMonth string
 	User                                                    *User
 	Income, Expense, Balance                                float64
 	Transactions                                            []Tx
@@ -192,7 +192,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			selectedMonth = c.Value
 		}
 	}
-	page := Page{User: user, Name: user.Name, Email: user.Email, CSRF: csrf, Active: p, Month: selectedMonth}
+	page := Page{User: user, Name: user.Name, Email: user.Email, CSRF: csrf, Active: p, Month: selectedMonth, CurrentMonth: time.Now().Format("2006-01")}
 	if page.Month == "" {
 		page.Month = time.Now().Format("2006-01")
 	}
@@ -674,7 +674,7 @@ func loadPage(db *sql.DB, r *http.Request, p *Page, path string) {
 	if path == "/" || path == "/dashboard" {
 		p.Title = "İcmal"
 		p.Months = availableMonths(ctx, db, p.User.ID, p.Month)
-		_ = db.QueryRowContext(ctx, `SELECT COALESCE((SELECT SUM(mebleq) FROM gelirler WHERE istifadeci_id=$1 AND to_char(tarix,'YYYY-MM')=$2),0),COALESCE((SELECT SUM(mebleq) FROM xercler WHERE istifadeci_id=$1 AND to_char(tarix,'YYYY-MM')=$2),0)`, p.User.ID, month).Scan(&p.Income, &p.Expense)
+		_ = db.QueryRowContext(ctx, `SELECT COALESCE((SELECT SUM(mebleq) FROM gelirler WHERE istifadeci_id=$1 AND to_char(tarix,'YYYY-MM')=$2),0),COALESCE((SELECT SUM(mebleq) FROM xercler WHERE istifadeci_id=$1 AND to_char(tarix,'YYYY-MM')=$2),0)`, p.User.ID, p.CurrentMonth).Scan(&p.Income, &p.Expense)
 		p.Balance = p.Income - p.Expense
 		rows, e := db.QueryContext(ctx, `SELECT x.id,k.ad,x.mebleq,x.tarix::text,x.hesab_novu,x.qeyd,x.kind FROM (SELECT id,kateqoriya_id,mebleq,tarix,hesab_novu,qeyd,'gelir' kind,istifadeci_id FROM gelirler UNION ALL SELECT id,kateqoriya_id,mebleq,tarix,hesab_novu,qeyd,'xerc' kind,istifadeci_id FROM xercler) x JOIN kateqoriyalar k ON k.id=x.kateqoriya_id WHERE x.istifadeci_id=$1 ORDER BY x.tarix DESC,x.id DESC LIMIT 8`, p.User.ID)
 		if e == nil {

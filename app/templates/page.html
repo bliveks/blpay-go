@@ -42,8 +42,8 @@
       </div>
       {{if eq .Active "/"}}
         <section class="grid stats">
-          <article class="card stat"><div class="stathead"><span>Bu ay gəlir</span><span class="staticon"><i class="fa-solid fa-arrow-trend-up" aria-hidden="true"></i></span></div><div class="amount positive">{{money .Income}}</div><div class="hint">{{month .Month}} üzrə daxilolmalar</div></article>
-          <article class="card stat"><div class="stathead"><span>Bu ay xərc</span><span class="staticon red"><i class="fa-solid fa-arrow-trend-down" aria-hidden="true"></i></span></div><div class="amount negative">{{money .Expense}}</div><div class="hint">{{month .Month}} üzrə xərclər</div></article>
+          <article class="card stat"><div class="stathead"><span>Bu ay gəlir</span><span class="staticon"><i class="fa-solid fa-arrow-trend-up" aria-hidden="true"></i></span></div><div class="amount positive">{{money .Income}}</div><div class="hint">{{month .CurrentMonth}} üzrə daxilolmalar</div></article>
+          <article class="card stat"><div class="stathead"><span>Bu ay xərc</span><span class="staticon red"><i class="fa-solid fa-arrow-trend-down" aria-hidden="true"></i></span></div><div class="amount negative">{{money .Expense}}</div><div class="hint">{{month .CurrentMonth}} üzrə xərclər</div></article>
           <article class="card stat"><div class="stathead"><span>Bu ay balans</span><span class="staticon"><i class="fa-solid fa-wallet" aria-hidden="true"></i></span></div><div class="amount">{{money .Balance}}</div><div class="hint">Gəlir və xərc fərqi</div></article>
         </section>
         <section class="grid">
