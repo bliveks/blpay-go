@@ -53,7 +53,7 @@
         </section>
       {{else if or (eq .Active "/income") (eq .Active "/expenses")}}
         {{if eq .Active "/expenses"}}<form class="filters" method="get"><div><label class="formlabel">Ay seçin</label><input class="input" type="month" name="month" value="{{.Month}}"></div><button class="btn light" type="submit">Göstər</button></form>{{end}}
-        <article class="card listcard"><div class="cardtitle"><h2>{{.Title}} · {{month .Month}}</h2><span class="tag">{{len .Transactions}} qeyd</span></div>
+        <article class="card listcard"><div class="cardtitle"><h2>{{.Title}}{{if eq .Active "/expenses"}} · {{month .Month}}{{end}}</h2><span class="tag">{{len .Transactions}} qeyd</span></div>
           {{if .Transactions}}{{range .Transactions}}{{$transaction := .}}
             <div class="rowitem {{if eq $.Active "/income"}}income-rowitem{{end}}"><span class="rowicon">{{if eq .Kind "gelir"}}<i class="fa-solid fa-arrow-trend-up" aria-hidden="true"></i>{{else}}<i class="fa-solid fa-arrow-trend-down" aria-hidden="true"></i>{{end}}</span><div class="rowmeta"><strong>{{.Category}}</strong><small>{{.Date}} · {{account .Account}}{{if .Note}} · {{.Note}}{{end}}</small></div>
               {{if eq $.Active "/income"}}
