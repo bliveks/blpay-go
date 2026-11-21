@@ -45,6 +45,18 @@
   }
 
   document.addEventListener('click', (event) => {
+    const categoryEditButton = event.target.closest('[data-category-edit]');
+    if (categoryEditButton) {
+      const form = document.querySelector('#category-edit-modal form');
+      if (form) {
+        form.elements.namedItem('id').value = categoryEditButton.dataset.id;
+        form.elements.namedItem('name').value = categoryEditButton.dataset.name;
+        form.elements.namedItem('type').value = categoryEditButton.dataset.type;
+        form.elements.namedItem('limit').value = categoryEditButton.dataset.limit;
+        form.elements.namedItem('type').dispatchEvent(new Event('change'));
+      }
+    }
+
     const editButton = event.target.closest('[data-transaction-edit]');
     if (editButton) {
       const form = document.querySelector('#transaction-edit-modal form');

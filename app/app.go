@@ -720,6 +720,7 @@ func loadPage(db *sql.DB, r *http.Request, p *Page, path string) {
 		}
 	case "/categories":
 		p.Title = "Kateqoriyalar"
+		p.Months = availableMonths(ctx, db, p.User.ID, p.Month)
 		rows, _ := db.QueryContext(ctx, `SELECT id,ad,tip,COALESCE(limit_mebleq,0) FROM kateqoriyalar WHERE istifadeci_id=$1 ORDER BY tip,ad`, p.User.ID)
 		if rows != nil {
 			for rows.Next() {
