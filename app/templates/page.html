@@ -55,18 +55,7 @@
           <a class="quick-action quick-income" href="/income#quick-add"><i class="fa-solid fa-plus" aria-hidden="true"></i> Gəlir əlavə et</a>
           <a class="quick-action quick-expense" href="/expenses#quick-add"><i class="fa-solid fa-plus" aria-hidden="true"></i> Xərc əlavə et</a>
         </section>
-        {{if .ExpenseTemplates}}<section class="card expense-templates-card" aria-labelledby="expense-templates-title"><div class="cardtitle"><h2 id="expense-templates-title">Tez-tez təkrarlanan xərclər</h2></div><div class="expense-templates">{{range .ExpenseTemplates}}<button class="expense-template-button" type="button" data-modal-open="transaction-modal" data-expense-template data-amount="{{printf "%.2f" .Amount}}" data-category="{{.CategoryID}}" data-date="{{nowDate}}" data-account="{{.Account}}" data-note="{{.Note}}" aria-label="{{.Category}} · {{.CategoryName}} · {{money .Amount}} xərc əlavə et"><span class="expense-template-icon"><i class="fa-solid {{.Icon}}" aria-hidden="true"></i></span><strong>{{.CategoryName}}</strong><small>{{.Category}} · {{money .Amount}}</small></button>{{end}}</div></section>{{end}}
-        <dialog class="modal" id="transaction-modal" aria-labelledby="dashboard-expense-modal-title">
-          <div class="modal-header"><h2 id="dashboard-expense-modal-title">Yeni xərc</h2><button class="modal-close" type="button" data-modal-close aria-label="Pəncərəni bağla"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>
-          <form method="post" action="/expenses"><input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="add">
-            <label class="formlabel">Məbləğ (AZN)</label><input class="input" type="number" min="0.01" step="0.01" name="amount" required>
-            <label class="formlabel">Kateqoriya</label><select name="category" required><option value="">Seçin</option>{{range .Categories}}{{if eq .Type "xerc"}}<option value="{{.ID}}">{{.Name}}</option>{{end}}{{end}}</select>
-            <label class="formlabel">Tarix</label><input class="input" type="date" name="date" value="{{nowDate}}" required>
-            <label class="formlabel">Hesab növü</label><select name="account" required><option value="nagd">Nağd</option><option value="kredit_kart">Kredit kartı</option><option value="debet_kart">Debet kartı</option></select>
-            <label class="formlabel">Qeyd</label><textarea name="note" rows="3" placeholder="İxtiyari qeyd"></textarea>
-            <div class="modal-actions"><button class="btn light" type="button" data-modal-close>Ləğv et</button><button class="btn" type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Yadda saxla</button></div>
-          </form>
-        </dialog>
+        {{if .ExpenseTemplates}}<section class="card expense-templates-card" aria-labelledby="expense-templates-title"><div class="cardtitle"><h2 id="expense-templates-title">Tez-tez təkrarlanan xərclər</h2></div><div class="expense-templates">{{range .ExpenseTemplates}}<button class="expense-template-button" type="button" data-expense-template data-amount="{{printf "%.2f" .Amount}}" data-category="{{.CategoryID}}" data-date="{{nowDate}}" data-account="{{.Account}}" data-note="{{.Note}}" aria-label="{{.Category}} · {{.CategoryName}} · {{money .Amount}} xərc əlavə et"><span class="expense-template-icon"><i class="fa-solid {{.Icon}}" aria-hidden="true"></i></span><strong>{{.CategoryName}}</strong><small>{{.Category}} · {{money .Amount}}</small></button>{{end}}</div></section>{{end}}
         {{if .Insights}}<section class="card insights-card" aria-labelledby="insights-title"><div class="cardtitle"><h2 id="insights-title">Ağıllı Maliyyə İpucları</h2></div><div class="insight-list">{{range .Insights}}<div class="insight-item {{.Tone}}"><span class="insight-icon"><i class="fa-solid {{.Icon}}" aria-hidden="true"></i></span><p>{{.Message}}</p></div>{{end}}</div></section>{{end}}
         <section class="grid">
           <article class="card"><div class="cardtitle"><h2>Son əməliyyatlar</h2><a href="/reports">Hamısına bax <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a></div>
@@ -156,6 +145,6 @@
 <nav class="mobile-bottom-nav" aria-label="Əsas menyu"><a class="mobile-nav-link {{if eq .Active "/income"}}active{{end}}" href="/income" aria-label="Gəlirlər" title="Gəlirlər"><i class="fa-solid fa-arrow-trend-up" aria-hidden="true"></i></a><a class="mobile-nav-link {{if eq .Active "/expenses"}}active{{end}}" href="/expenses" aria-label="Xərclər" title="Xərclər"><i class="fa-solid fa-arrow-trend-down" aria-hidden="true"></i></a><a class="mobile-nav-link {{if eq .Active "/reports"}}active{{end}}" href="/reports" aria-label="Hesabatlar" title="Hesabatlar"><i class="fa-solid fa-chart-column" aria-hidden="true"></i></a><a class="mobile-nav-link {{if eq .Active "/categories"}}active{{end}}" href="/categories" aria-label="Kateqoriyalar" title="Kateqoriyalar"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></a></nav>
 <div class="page-loading" id="page-loading" role="status" aria-label="Səhifə yüklənir" aria-hidden="true"><span class="page-loading-spinner" aria-hidden="true"></span></div>
 {{if or .Error .Success}}<div class="toast {{if .Success}}toast-ok{{else}}toast-error{{end}}" role="{{if .Error}}alert{{else}}status{{end}}" aria-live="{{if .Error}}assertive{{else}}polite{{end}}">{{if .Success}}{{.Success}}{{else}}{{.Error}}{{end}}</div>{{end}}
-<script src="/assets/app.js?v=17" defer></script>
+<script src="/assets/app.js?v=18" defer></script>
 </body>
 </html>

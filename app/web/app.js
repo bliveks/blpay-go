@@ -111,14 +111,16 @@
   document.addEventListener('click', (event) => {
     const expenseTemplate = event.target.closest('[data-expense-template]');
     if (expenseTemplate) {
-      const form = document.querySelector('#transaction-modal form');
-      if (form) {
-        form.elements.namedItem('amount').value = expenseTemplate.dataset.amount;
-        form.elements.namedItem('category').value = expenseTemplate.dataset.category;
-        form.elements.namedItem('date').value = expenseTemplate.dataset.date;
-        form.elements.namedItem('account').value = expenseTemplate.dataset.account;
-        form.elements.namedItem('note').value = expenseTemplate.dataset.note;
-      }
+      sessionStorage.setItem('blpay_expense_template', JSON.stringify({
+        amount: expenseTemplate.dataset.amount,
+        category: expenseTemplate.dataset.category,
+        date: expenseTemplate.dataset.date,
+        account: expenseTemplate.dataset.account,
+        note: expenseTemplate.dataset.note,
+      }));
+      showPageLoading();
+      window.location.assign('/expenses');
+      return;
     }
 
     const categoryEditButton = event.target.closest('[data-category-edit]');
@@ -319,6 +321,26 @@
     if (openTransactionButton) {
       window.history.replaceState({}, '', `${window.location.pathname}${window.location.search}`);
       openTransactionButton.click();
+    }
+  }
+
+  if (window.location.pathname === '/expenses') {
+    const pendingTemplate = sessionStorage.getItem('blpay_expense_template');
+    if (pendingTemplate) {
+      sessionStorage.removeItem('blpay_expense_template');
+      try {
+        const preset = JSON.parse(pendingTemplate);
+        const form = document.querySelector('#transaction-modal form');
+        const openButton = document.querySelector('[data-modal-open="transaction-modal"]');
+        if (form && openButton) {
+          form.elements.namedItem('amount').value = preset.amount;
+          form.elements.namedItem('category').value = preset.category;
+          form.elements.namedItem('date').value = preset.date;
+          form.elements.namedItem('account').value = preset.account;
+          form.elements.namedItem('note').value = preset.note;
+          openButton.click();
+        }
+      } catch (_) {}
     }
   }
 })();
