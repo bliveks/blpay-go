@@ -10,6 +10,21 @@
   }
 
   document.addEventListener('click', (event) => {
+    const editButton = event.target.closest('[data-income-edit]');
+    if (editButton) {
+      const form = document.querySelector('#income-edit-modal form');
+      if (form) {
+        form.elements.namedItem('id').value = editButton.dataset.id;
+        form.elements.namedItem('amount').value = editButton.dataset.amount;
+        form.elements.namedItem('date').value = editButton.dataset.date;
+        form.elements.namedItem('account').value = editButton.dataset.account;
+        form.elements.namedItem('note').value = editButton.dataset.note;
+        const category = form.elements.namedItem('category');
+        const option = Array.from(category.options).find((item) => item.textContent === editButton.dataset.category);
+        if (option) category.value = option.value;
+      }
+    }
+
     const openButton = event.target.closest('[data-modal-open]');
     if (openButton) {
       const dialog = document.getElementById(openButton.dataset.modalOpen);
