@@ -213,6 +213,16 @@
   }
 
   document.addEventListener('click', (event) => {
+    const toggle = event.target.closest('[data-report-note-toggle]');
+    if (!toggle) return;
+    const note = toggle.closest('.report-mobile-content')?.querySelector('.report-mobile-note');
+    if (!note) return;
+    note.hidden = !note.hidden;
+    toggle.setAttribute('aria-expanded', String(!note.hidden));
+    toggle.setAttribute('aria-label', note.hidden ? 'Qeydi göstər' : 'Qeydi gizlət');
+  });
+
+  document.addEventListener('click', (event) => {
     document.querySelectorAll('[data-category-filter]').forEach((container) => {
       if (!container.contains(event.target)) {
         const filter = container.querySelector('[data-category-type-filter]');
