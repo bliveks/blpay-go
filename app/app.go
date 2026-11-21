@@ -295,6 +295,8 @@ func serveAsset(w http.ResponseWriter, r *http.Request, p string) {
 		w.Header().Set("Content-Type", "text/css; charset=utf-8")
 	case strings.HasSuffix(name, ".woff2"):
 		w.Header().Set("Content-Type", "font/woff2")
+	case strings.HasSuffix(name, ".png"):
+		w.Header().Set("Content-Type", "image/png")
 	default:
 		w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
 	}
