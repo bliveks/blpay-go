@@ -10,9 +10,9 @@
   }
 
   document.addEventListener('click', (event) => {
-    const editButton = event.target.closest('[data-income-edit]');
+    const editButton = event.target.closest('[data-transaction-edit]');
     if (editButton) {
-      const form = document.querySelector('#income-edit-modal form');
+      const form = document.querySelector('#transaction-edit-modal form');
       if (form) {
         form.elements.namedItem('id').value = editButton.dataset.id;
         form.elements.namedItem('amount').value = editButton.dataset.amount;

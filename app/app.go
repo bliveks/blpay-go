@@ -674,32 +674,32 @@ func loadPage(db *sql.DB, r *http.Request, p *Page, path string) {
 		table, typ, title := "xercler", "xerc", "Xərclər"
 		if isIncome {
 			table, typ, title = "gelirler", "gelir", "Toplam gəlirlər"
+		} else {
+			title = "Toplam xərclər"
 		}
 		p.Title = title
 		p.FormType = typ
-		if isIncome {
-			monthRows, err := db.QueryContext(ctx, `SELECT DISTINCT to_char(tarix,'YYYY-MM') FROM gelirler WHERE istifadeci_id=$1 ORDER BY 1 DESC`, p.User.ID)
-			if err == nil {
-				for monthRows.Next() {
-					var availableMonth string
-					if monthRows.Scan(&availableMonth) == nil {
-						p.Months = append(p.Months, availableMonth)
-					}
+		monthRows, err := db.QueryContext(ctx, `SELECT DISTINCT to_char(tarix,'YYYY-MM') FROM `+table+` WHERE istifadeci_id=$1 ORDER BY 1 DESC`, p.User.ID)
+		if err == nil {
+			for monthRows.Next() {
+				var availableMonth string
+				if monthRows.Scan(&availableMonth) == nil {
+					p.Months = append(p.Months, availableMonth)
 				}
-				monthRows.Close()
 			}
-			if len(p.Months) > 0 {
-				found := false
-				for _, availableMonth := range p.Months {
-					if availableMonth == p.Month {
-						found = true
-						break
-					}
+			monthRows.Close()
+		}
+		if len(p.Months) > 0 {
+			found := false
+			for _, availableMonth := range p.Months {
+				if availableMonth == p.Month {
+					found = true
+					break
 				}
-				if !found {
-					p.Month = p.Months[0]
-					month = p.Month
-				}
+			}
+			if !found {
+				p.Month = p.Months[0]
+				month = p.Month
 			}
 		}
 		rows, _ := db.QueryContext(ctx, `SELECT id,ad,tip,COALESCE(limit_mebleq,0) FROM kateqoriyalar WHERE istifadeci_id=$1 AND tip=$2 ORDER BY ad`, p.User.ID, typ)

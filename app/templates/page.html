@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#147d57">
 <title>{{.Title}} · BlPay</title>
 <link rel="stylesheet" href="/assets/fontawesome.min.css">
-<link rel="stylesheet" href="/assets/app.css?v=3">
+<link rel="stylesheet" href="/assets/app.css?v=4">
 </head>
 <body>
 <div class="shell">
@@ -28,12 +28,12 @@
   </aside>
   <main class="main">
     <header class="topbar">
-      <div style="display:flex;align-items:center;gap:12px"><button class="menu-toggle" id="menu-toggle" type="button" aria-label="Menyunu aç" aria-controls="sidebar" aria-expanded="false"><i class="fa-solid fa-bars" aria-hidden="true"></i></button>{{if eq .Active "/income"}}<form class="month-picker" method="get"><select class="month-picker-select" name="month" aria-label="Gəlir ayını seçin" onchange="this.form.submit()" {{if not .Months}}disabled{{end}}>{{range .Months}}<option value="{{.}}" {{if eq . $.Month}}selected{{end}}>{{monthName .}}</option>{{else}}<option selected>Ay yoxdur</option>{{end}}</select></form>{{else}}<span class="date">{{month .Month}}</span>{{end}}</div>
+      <div style="display:flex;align-items:center;gap:12px"><button class="menu-toggle" id="menu-toggle" type="button" aria-label="Menyunu aç" aria-controls="sidebar" aria-expanded="false"><i class="fa-solid fa-bars" aria-hidden="true"></i></button>{{if or (eq .Active "/income") (eq .Active "/expenses")}}<form class="month-picker" method="get"><select class="month-picker-select" name="month" aria-label="{{if eq .Active "/income"}}Gəlir{{else}}Xərc{{end}} ayını seçin" onchange="this.form.submit()" {{if not .Months}}disabled{{end}}>{{range .Months}}<option value="{{.}}" {{if eq . $.Month}}selected{{end}}>{{monthName .}}</option>{{else}}<option selected>Ay yoxdur</option>{{end}}</select></form>{{else}}<span class="date">{{month .Month}}</span>{{end}}</div>
       <div class="topbar-account"><span class="muted">{{.Name}}</span><span class="avatar">{{slice .Name 0 1}}</span></div>
     </header>
     <div class="content">
-      <div class="heading {{if eq .Active "/income"}}income-heading{{end}}">
-        <div>{{if ne .Active "/income"}}<div class="eyebrow">Şəxsi maliyyə paneli</div>{{end}}<h1>{{.Title}}</h1>{{if ne .Active "/income"}}<p>{{if eq .Active "/"}}Salam, {{.Name}}. Maliyyə vəziyyətinizə ümumi baxış.{{else}}{{month .Month}} üçün məlumatlar{{end}}</p>{{end}}</div>
+      <div class="heading {{if or (eq .Active "/income") (eq .Active "/expenses")}}transaction-heading{{end}}">
+        <div>{{if and (ne .Active "/income") (ne .Active "/expenses")}}<div class="eyebrow">Şəxsi maliyyə paneli</div>{{end}}<h1>{{.Title}}</h1>{{if and (ne .Active "/income") (ne .Active "/expenses")}}<p>{{if eq .Active "/"}}Salam, {{.Name}}. Maliyyə vəziyyətinizə ümumi baxış.{{else}}{{month .Month}} üçün məlumatlar{{end}}</p>{{end}}</div>
         {{if or (eq .Active "/income") (eq .Active "/expenses")}}
           <button class="btn" type="button" data-modal-open="transaction-modal"><i class="fa-solid fa-plus" aria-hidden="true"></i> Yeni {{if eq .FormType "gelir"}}gəlir{{else}}xərc{{end}}</button>
         {{else if eq .Active "/categories"}}
@@ -52,16 +52,10 @@
           </article>
         </section>
       {{else if or (eq .Active "/income") (eq .Active "/expenses")}}
-        {{if eq .Active "/expenses"}}<form class="filters" method="get"><div><label class="formlabel">Ay seçin</label><input class="input" type="month" name="month" value="{{.Month}}"></div><button class="btn light" type="submit">Göstər</button></form>{{end}}
-        <article class="card listcard"><div class="cardtitle"><h2>{{.Title}}{{if eq .Active "/expenses"}} · {{month .Month}}{{end}}</h2><span class="tag">{{len .Transactions}} qeyd</span></div>
-          {{if .Transactions}}{{range .Transactions}}{{$transaction := .}}
-            <div class="rowitem {{if eq $.Active "/income"}}income-rowitem{{end}}"><span class="rowicon">{{if eq .Kind "gelir"}}<i class="fa-solid fa-arrow-trend-up" aria-hidden="true"></i>{{else}}<i class="fa-solid fa-arrow-trend-down" aria-hidden="true"></i>{{end}}</span><div class="rowmeta"><strong>{{.Category}}</strong><small>{{.Date}} · {{account .Account}}{{if .Note}} · {{.Note}}{{end}}</small></div>
-              {{if eq $.Active "/income"}}
-                <div class="rowvalue positive">+{{money .Amount}}</div><div class="actions"><button class="btn light icon-button" type="button" data-modal-open="income-edit-modal" data-income-edit data-id="{{.ID}}" data-amount="{{.Amount}}" data-category="{{.Category}}" data-date="{{.Date}}" data-account="{{.Account}}" data-note="{{.Note}}" aria-label="Düzəlt" title="Düzəlt"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i></button><form method="post" action="{{$.Active}}" onsubmit="return confirm('Bu qeydi silmək istəyirsiniz?')"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{.ID}}"><button class="btn danger" aria-label="Sil" title="Sil"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button></form></div>
-              {{else}}
-                <details class="editentry"><summary class="btn light">Düzəlt</summary><form method="post" action="{{$.Active}}"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="edit"><input type="hidden" name="id" value="{{.ID}}"><label class="formlabel">Məbləğ</label><input class="input" type="number" name="amount" min="0.01" step="0.01" value="{{.Amount}}" required><label class="formlabel">Kateqoriya</label><select name="category" required>{{range $.Categories}}<option value="{{.ID}}" {{if eq .Name $transaction.Category}}selected{{end}}>{{.Name}}</option>{{end}}</select><label class="formlabel">Tarix</label><input class="input" type="date" name="date" value="{{.Date}}" required><label class="formlabel">Hesab növü</label><select name="account"><option value="nagd" {{if eq .Account "nagd"}}selected{{end}}>Nağd</option><option value="kredit_kart" {{if eq .Account "kredit_kart"}}selected{{end}}>Kredit kartı</option><option value="debet_kart" {{if eq .Account "debet_kart"}}selected{{end}}>Debet kartı</option></select><label class="formlabel">Qeyd</label><input class="input" name="note" value="{{.Note}}"><button class="btn" style="margin-top:12px">Yenilə</button></form></details>
-                <div class="rowvalue negative">−{{money .Amount}}</div><form method="post" action="{{$.Active}}" onsubmit="return confirm('Bu qeydi silmək istəyirsiniz?')"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{.ID}}"><button class="btn danger" aria-label="Sil"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button></form>
-              {{end}}
+        <article class="card listcard"><div class="cardtitle"><h2>{{.Title}}</h2><span class="tag">{{len .Transactions}} qeyd</span></div>
+          {{if .Transactions}}{{range .Transactions}}
+            <div class="rowitem transaction-rowitem"><span class="rowicon">{{if eq .Kind "gelir"}}<i class="fa-solid fa-arrow-trend-up" aria-hidden="true"></i>{{else}}<i class="fa-solid fa-arrow-trend-down" aria-hidden="true"></i>{{end}}</span><div class="rowmeta"><strong>{{.Category}}</strong><small>{{.Date}} · {{account .Account}}{{if .Note}} · {{.Note}}{{end}}</small></div>
+              <div class="rowvalue {{if eq .Kind "gelir"}}positive{{else}}negative{{end}}">{{if eq .Kind "gelir"}}+{{else}}−{{end}}{{money .Amount}}</div><div class="actions"><button class="btn light icon-button" type="button" data-modal-open="transaction-edit-modal" data-transaction-edit data-id="{{.ID}}" data-amount="{{.Amount}}" data-category="{{.Category}}" data-date="{{.Date}}" data-account="{{.Account}}" data-note="{{.Note}}" aria-label="Düzəlt" title="Düzəlt"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i></button><form method="post" action="{{$.Active}}" onsubmit="return confirm('Bu qeydi silmək istəyirsiniz?')"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{.ID}}"><button class="btn danger" aria-label="Sil" title="Sil"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button></form></div>
             </div>
           {{end}}{{else}}<div class="muted empty-state">Bu ay üçün qeyd yoxdur.</div>{{end}}
         </article>
@@ -76,9 +70,9 @@
             <div class="modal-actions"><button class="btn light" type="button" data-modal-close>Ləğv et</button><button class="btn" type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Yadda saxla</button></div>
           </form>
         </dialog>
-        {{if eq .Active "/income"}}<dialog class="modal" id="income-edit-modal" aria-labelledby="income-edit-modal-title">
-          <div class="modal-header"><h2 id="income-edit-modal-title">Gəliri düzəlt</h2><button class="modal-close" type="button" data-modal-close aria-label="Pəncərəni bağla"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>
-          <form method="post" action="/income"><input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="edit"><input type="hidden" name="id">
+        <dialog class="modal" id="transaction-edit-modal" aria-labelledby="transaction-edit-modal-title">
+          <div class="modal-header"><h2 id="transaction-edit-modal-title">{{if eq .Active "/income"}}Gəliri{{else}}Xərci{{end}} düzəlt</h2><button class="modal-close" type="button" data-modal-close aria-label="Pəncərəni bağla"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>
+          <form method="post" action="{{.Active}}"><input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="edit"><input type="hidden" name="id">
             <label class="formlabel">Məbləğ (AZN)</label><input class="input" type="number" name="amount" min="0.01" step="0.01" required>
             <label class="formlabel">Kateqoriya</label><select name="category" required>{{range .Categories}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>
             <label class="formlabel">Tarix</label><input class="input" type="date" name="date" required>
@@ -86,7 +80,7 @@
             <label class="formlabel">Qeyd</label><input class="input" name="note">
             <div class="modal-actions"><button class="btn light" type="button" data-modal-close>Ləğv et</button><button class="btn" type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Yenilə</button></div>
           </form>
-        </dialog>{{end}}
+        </dialog>
       {{else if eq .Active "/categories"}}
         <article class="card"><div class="cardtitle"><h2>Kateqoriyalar</h2><span class="tag">{{len .Categories}}</span></div><div class="tablewrap"><table><thead><tr><th>Ad</th><th>Tip</th><th>Limit</th><th></th></tr></thead><tbody>{{range .Categories}}
           <tr><td><strong>{{.Name}}</strong></td><td>{{kind .Type}}</td><td>{{if gt .Limit 0.0}}{{money .Limit}}{{else}}—{{end}}</td><td><div class="actions"><details class="editentry"><summary class="btn light">Düzəlt</summary><form method="post" action="/categories" data-category-form><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="edit"><input type="hidden" name="id" value="{{.ID}}"><label class="formlabel">Ad</label><input class="input" name="name" value="{{.Name}}" required><label class="formlabel">Tip</label><select name="type"><option value="gelir" {{if eq .Type "gelir"}}selected{{end}}>Gəlir</option><option value="xerc" {{if eq .Type "xerc"}}selected{{end}}>Xərc</option></select><div data-expense-limit><label class="formlabel">Aylıq xərc limiti (AZN)</label><input class="input" type="number" min="0" step="0.01" name="limit" value="{{.Limit}}"></div><button class="btn" style="margin-top:10px">Yenilə</button></form></details><form method="post" action="/categories" onsubmit="return confirm('Kateqoriyanı silmək istəyirsiniz?')"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{.ID}}"><button class="btn danger">Sil</button></form></div></td></tr>
