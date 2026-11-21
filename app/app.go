@@ -784,6 +784,7 @@ func loadPage(db *sql.DB, r *http.Request, p *Page, path string) {
 		}
 	case "/settings":
 		p.Title = "Hesab parametrləri"
+		p.Months = availableMonths(ctx, db, p.User.ID, p.Month)
 	case "/admin":
 		p.Title = "İdarəetmə"
 		if !p.IsAdmin {
