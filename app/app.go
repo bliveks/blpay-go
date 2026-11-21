@@ -298,7 +298,11 @@ func serveAsset(w http.ResponseWriter, r *http.Request, p string) {
 	default:
 		w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
 	}
-	w.Header().Set("Cache-Control", "public, max-age=3600")
+	if strings.HasSuffix(name, ".css") || strings.HasSuffix(name, ".js") {
+		w.Header().Set("Cache-Control", "public, max-age=0, must-revalidate")
+	} else {
+		w.Header().Set("Cache-Control", "public, max-age=3600")
+	}
 	_, _ = w.Write(b)
 }
 func renderConfig(w http.ResponseWriter, err error) {
