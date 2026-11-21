@@ -135,4 +135,12 @@
     type.addEventListener('change', syncLimitField);
     syncLimitField();
   });
+
+  document.querySelectorAll('[data-category-type-filter]').forEach((filter) => {
+    filter.addEventListener('change', () => {
+      document.querySelectorAll('[data-category-type]').forEach((row) => {
+        row.hidden = Boolean(filter.value) && row.dataset.categoryType !== filter.value;
+      });
+    });
+  });
 })();
