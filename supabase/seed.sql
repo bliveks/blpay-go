@@ -1,0 +1,1 @@
+-- Standard categories are inserted by the initial schema migration.
