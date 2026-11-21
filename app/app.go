@@ -19,6 +19,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	_ "time/tzdata"
 	"unicode"
 
 	"github.com/jackc/pgx/v5"
@@ -91,6 +92,14 @@ var (
 	initOnce sync.Once
 	initErr  error
 )
+
+var bakuLocation = func() *time.Location {
+	location, err := time.LoadLocation("Asia/Baku")
+	if err != nil {
+		return time.FixedZone("Asia/Baku", 4*60*60)
+	}
+	return location
+}()
 
 type User struct {
 	ID                int64
@@ -692,13 +701,17 @@ func handlePost(w http.ResponseWriter, r *http.Request, db *sql.DB, u *User, pat
 
 func dashboardInsights(ctx context.Context, db *sql.DB, userID int64, now time.Time) []Insight {
 	insights := make([]Insight, 0, 2)
+	now = now.In(bakuLocation)
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	lastPayday := time.Date(now.Year(), now.Month(), 6, 0, 0, 0, 0, now.Location())
 	if today.Before(lastPayday) {
 		lastPayday = time.Date(now.Year(), now.Month()-1, 6, 0, 0, 0, 0, now.Location())
 	}
 	nextPayday := lastPayday.AddDate(0, 1, 0)
-	daysRemaining := int(nextPayday.Sub(today).Hours() / 24)
+	daysRemaining := calendarDaysBetween(today, nextPayday)
+	if now.Hour() >= 19 {
+		daysRemaining--
+	}
 	tomorrow := today.AddDate(0, 0, 1)
 	var cycleIncome, cycleExpense float64
 	if err := db.QueryRowContext(ctx, `
@@ -764,6 +777,12 @@ func dashboardInsights(ctx context.Context, db *sql.DB, userID int64, now time.T
 		})
 	}
 	return insights
+}
+
+func calendarDaysBetween(start, end time.Time) int {
+	startDate := time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, time.UTC)
+	endDate := time.Date(end.Year(), end.Month(), end.Day(), 0, 0, 0, 0, time.UTC)
+	return int(endDate.Sub(startDate).Hours() / 24)
 }
 
 func loadPage(db *sql.DB, r *http.Request, p *Page, path string) {
