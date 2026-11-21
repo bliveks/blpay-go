@@ -160,25 +160,27 @@
   const reportRows = Array.from(document.querySelectorAll('[data-report-row]'));
   if (reportFilters.length && reportRows.length) {
     const emptyRow = document.querySelector('.report-filter-empty');
-    const amountFilter = reportFilters.find((filter) => filter.dataset.reportFilter === 'amount');
+    const amountFilters = reportFilters.filter((filter) => filter.dataset.reportFilter === 'amount');
     const totalOutput = document.querySelector('[data-report-total]');
     const matchesFilter = (row, filter) => {
       const value = filter.value;
-      if (!value) return true;
+      if (value === '__all__') return true;
       const field = filter.dataset.reportFilter;
       if (field === 'amount') return Number(row.dataset.amount).toFixed(2) === value;
       if (field === 'note' && value === '__empty__') return !row.dataset.note;
       return row.dataset[field] === value;
     };
     const updateAmountOptions = () => {
-      if (!amountFilter) return;
-      const selected = amountFilter.value;
+      if (!amountFilters.length) return;
+      const selected = amountFilters[0].value;
       const available = [...new Set(reportRows
-        .filter((row) => reportFilters.filter((filter) => filter !== amountFilter).every((filter) => matchesFilter(row, filter)))
+        .filter((row) => reportFilters.filter((filter) => filter.dataset.reportFilter !== 'amount').every((filter) => matchesFilter(row, filter)))
         .map((row) => Number(row.dataset.amount).toFixed(2)))].sort((a, b) => Number(a) - Number(b));
-      amountFilter.replaceChildren(new Option('Hamısı', ''));
-      available.forEach((amount) => amountFilter.add(new Option(amount, amount)));
-      amountFilter.value = available.includes(selected) ? selected : '';
+      amountFilters.forEach((filter) => {
+        filter.replaceChildren(new Option('Hamısı', '__all__'));
+        available.forEach((amount) => filter.add(new Option(amount, amount)));
+        filter.value = available.includes(selected) ? selected : '__all__';
+      });
     };
     const applyReportFilters = () => {
       updateAmountOptions();
@@ -195,7 +197,18 @@
       if (totalOutput) totalOutput.textContent = visibleTotal.toFixed(2);
       if (emptyRow) emptyRow.hidden = visibleCount !== 0;
     };
-    reportFilters.forEach((filter) => filter.addEventListener('change', applyReportFilters));
+    reportFilters.forEach((filter) => filter.addEventListener('change', () => {
+      reportFilters.filter((other) => other.dataset.reportFilter === filter.dataset.reportFilter).forEach((other) => {
+        other.value = filter.value;
+      });
+      applyReportFilters();
+    }));
+    document.querySelector('[data-report-filter-reset]')?.addEventListener('click', () => {
+      reportFilters.forEach((filter) => {
+        filter.value = '__all__';
+      });
+      applyReportFilters();
+    });
     applyReportFilters();
   }
 
