@@ -63,6 +63,14 @@ var (
 			return "Xərc"
 		},
 		"nowDate": func() string { return time.Now().Format("2006-01-02") },
+		"monthName": func(v string) string {
+			t, e := time.Parse("2006-01", v)
+			if e != nil {
+				return v
+			}
+			names := []string{"Yanvar", "Fevral", "Mart", "Aprel", "May", "İyun", "İyul", "Avqust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr"}
+			return names[int(t.Month())-1]
+		},
 		"month": func(v string) string {
 			t, e := time.Parse("2006-01", v)
 			if e != nil {
@@ -97,6 +105,7 @@ type Page struct {
 	User                                                    *User
 	Income, Expense, Balance                                float64
 	Transactions                                            []Tx
+	Months                                                  []string
 	Categories                                              []Category
 	Items                                                   []map[string]any
 	IsAdmin                                                 bool
@@ -668,6 +677,31 @@ func loadPage(db *sql.DB, r *http.Request, p *Page, path string) {
 		}
 		p.Title = title
 		p.FormType = typ
+		if isIncome {
+			monthRows, err := db.QueryContext(ctx, `SELECT DISTINCT to_char(tarix,'YYYY-MM') FROM gelirler WHERE istifadeci_id=$1 ORDER BY 1 DESC`, p.User.ID)
+			if err == nil {
+				for monthRows.Next() {
+					var availableMonth string
+					if monthRows.Scan(&availableMonth) == nil {
+						p.Months = append(p.Months, availableMonth)
+					}
+				}
+				monthRows.Close()
+			}
+			if len(p.Months) > 0 {
+				found := false
+				for _, availableMonth := range p.Months {
+					if availableMonth == p.Month {
+						found = true
+						break
+					}
+				}
+				if !found {
+					p.Month = p.Months[0]
+					month = p.Month
+				}
+			}
+		}
 		rows, _ := db.QueryContext(ctx, `SELECT id,ad,tip,COALESCE(limit_mebleq,0) FROM kateqoriyalar WHERE istifadeci_id=$1 AND tip=$2 ORDER BY ad`, p.User.ID, typ)
 		if rows != nil {
 			for rows.Next() {

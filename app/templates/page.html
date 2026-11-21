@@ -28,12 +28,12 @@
   </aside>
   <main class="main">
     <header class="topbar">
-      <div style="display:flex;align-items:center;gap:12px"><button class="menu-toggle" id="menu-toggle" type="button" aria-label="Menyunu aç" aria-controls="sidebar" aria-expanded="false"><i class="fa-solid fa-bars" aria-hidden="true"></i></button><span class="date">{{month .Month}}</span></div>
-      <div style="display:flex;align-items:center;gap:10px"><span class="muted">{{.Name}}</span><span class="avatar">{{slice .Name 0 1}}</span></div>
+      <div style="display:flex;align-items:center;gap:12px"><button class="menu-toggle" id="menu-toggle" type="button" aria-label="Menyunu aç" aria-controls="sidebar" aria-expanded="false"><i class="fa-solid fa-bars" aria-hidden="true"></i></button>{{if ne .Active "/income"}}<span class="date">{{month .Month}}</span>{{end}}</div>
+      <div class="topbar-account">{{if eq .Active "/income"}}<form class="month-picker" method="get"><select class="month-picker-select" name="month" aria-label="Gəlir ayını seçin" onchange="this.form.submit()" {{if not .Months}}disabled{{end}}>{{range .Months}}<option value="{{.}}" {{if eq . $.Month}}selected{{end}}>{{monthName .}}</option>{{else}}<option selected>Ay yoxdur</option>{{end}}</select></form>{{end}}<span class="muted">{{.Name}}</span><span class="avatar">{{slice .Name 0 1}}</span></div>
     </header>
     <div class="content">
       <div class="heading">
-        <div><div class="eyebrow">Şəxsi maliyyə paneli</div><h1>{{.Title}}</h1><p>{{if eq .Active "/"}}Salam, {{.Name}}. Maliyyə vəziyyətinizə ümumi baxış.{{else}}{{month .Month}} üçün məlumatlar{{end}}</p></div>
+        <div>{{if ne .Active "/income"}}<div class="eyebrow">Şəxsi maliyyə paneli</div>{{end}}<h1>{{.Title}}</h1>{{if ne .Active "/income"}}<p>{{if eq .Active "/"}}Salam, {{.Name}}. Maliyyə vəziyyətinizə ümumi baxış.{{else}}{{month .Month}} üçün məlumatlar{{end}}</p>{{end}}</div>
         {{if or (eq .Active "/income") (eq .Active "/expenses")}}
           <button class="btn" type="button" data-modal-open="transaction-modal"><i class="fa-solid fa-plus" aria-hidden="true"></i> Yeni {{if eq .FormType "gelir"}}gəlir{{else}}xərc{{end}}</button>
         {{else if eq .Active "/categories"}}
@@ -52,7 +52,7 @@
           </article>
         </section>
       {{else if or (eq .Active "/income") (eq .Active "/expenses")}}
-        <form class="filters" method="get"><div><label class="formlabel">Ay seçin</label><input class="input" type="month" name="month" value="{{.Month}}"></div><button class="btn light" type="submit">Göstər</button></form>
+        {{if eq .Active "/expenses"}}<form class="filters" method="get"><div><label class="formlabel">Ay seçin</label><input class="input" type="month" name="month" value="{{.Month}}"></div><button class="btn light" type="submit">Göstər</button></form>{{end}}
         <article class="card listcard"><div class="cardtitle"><h2>{{.Title}} · {{month .Month}}</h2><span class="tag">{{len .Transactions}} qeyd</span></div>
           {{if .Transactions}}{{range .Transactions}}{{$transaction := .}}
             <div class="rowitem"><span class="rowicon">{{if eq .Kind "gelir"}}<i class="fa-solid fa-arrow-trend-up" aria-hidden="true"></i>{{else}}<i class="fa-solid fa-arrow-trend-down" aria-hidden="true"></i>{{end}}</span><div class="rowmeta"><strong>{{.Category}}</strong><small>{{.Date}} · {{account .Account}}{{if .Note}} · {{.Note}}{{end}}</small></div>
