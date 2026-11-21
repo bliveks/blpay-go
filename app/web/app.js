@@ -1,6 +1,41 @@
 (() => {
   let lastOpener = null;
 
+  const validMonth = (value) => /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
+  const saveMonth = (value) => {
+    if (!validMonth(value)) return;
+    const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+    document.cookie = `blpay_month=${value}; Path=/; SameSite=Lax${secure}`;
+  };
+  const navigateWithoutMonthQuery = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('month');
+    window.location.assign(`${url.pathname}${url.search}${url.hash}`);
+  };
+
+  const currentURL = new URL(window.location.href);
+  const queryMonth = currentURL.searchParams.get('month');
+  if (validMonth(queryMonth || '')) saveMonth(queryMonth);
+  if (currentURL.searchParams.has('month')) {
+    currentURL.searchParams.delete('month');
+    window.history.replaceState({}, '', `${currentURL.pathname}${currentURL.search}${currentURL.hash}`);
+  }
+
+  document.querySelectorAll('[data-month-select]').forEach((select) => {
+    select.addEventListener('change', () => {
+      saveMonth(select.value);
+      navigateWithoutMonthQuery();
+    });
+  });
+
+  document.querySelectorAll('[data-month-form]').forEach((form) => {
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      saveMonth(form.elements.namedItem('month').value);
+      navigateWithoutMonthQuery();
+    });
+  });
+
   const toast = document.querySelector('.toast');
   if (toast) {
     window.setTimeout(() => {

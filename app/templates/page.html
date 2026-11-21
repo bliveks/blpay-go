@@ -28,7 +28,7 @@
   </aside>
   <main class="main">
     <header class="topbar">
-      <div style="display:flex;align-items:center;gap:12px"><button class="menu-toggle" id="menu-toggle" type="button" aria-label="Menyunu aç" aria-controls="sidebar" aria-expanded="false"><i class="fa-solid fa-bars" aria-hidden="true"></i></button>{{if or (eq .Active "/income") (eq .Active "/expenses")}}<form class="month-picker" method="get"><select class="month-picker-select" name="month" aria-label="{{if eq .Active "/income"}}Gəlir{{else}}Xərc{{end}} ayını seçin" onchange="this.form.submit()" {{if not .Months}}disabled{{end}}>{{range .Months}}<option value="{{.}}" {{if eq . $.Month}}selected{{end}}>{{monthName .}}</option>{{else}}<option selected>Ay yoxdur</option>{{end}}</select></form>{{else}}<span class="date">{{month .Month}}</span>{{end}}</div>
+      <div style="display:flex;align-items:center;gap:12px"><button class="menu-toggle" id="menu-toggle" type="button" aria-label="Menyunu aç" aria-controls="sidebar" aria-expanded="false"><i class="fa-solid fa-bars" aria-hidden="true"></i></button>{{if or (eq .Active "/income") (eq .Active "/expenses")}}<div class="month-picker"><select class="month-picker-select" data-month-select aria-label="{{if eq .Active "/income"}}Gəlir{{else}}Xərc{{end}} ayını seçin" {{if not .Months}}disabled{{end}}>{{range .Months}}<option value="{{.}}" {{if eq . $.Month}}selected{{end}}>{{monthName .}}</option>{{else}}<option selected>Ay yoxdur</option>{{end}}</select></div>{{else}}<span class="date">{{month .Month}}</span>{{end}}</div>
       <div class="topbar-account"><span class="muted">{{.Name}}</span><span class="avatar">{{slice .Name 0 1}}</span></div>
     </header>
     <div class="content">
@@ -95,7 +95,7 @@
           </form>
         </dialog>
       {{else if eq .Active "/reports"}}
-        <form class="filters" method="get"><div><label class="formlabel">Ay seçin</label><input class="input" type="month" name="month" value="{{.Month}}"></div><button class="btn light" type="submit">Göstər</button></form>
+        <form class="filters" method="get" data-month-form><div><label class="formlabel">Ay seçin</label><input class="input" type="month" name="month" value="{{.Month}}"></div><button class="btn light" type="submit">Göstər</button></form>
         <section class="grid stats"><article class="card stat"><div class="stathead">Gəlir</div><div class="amount positive">{{money .Income}}</div></article><article class="card stat"><div class="stathead">Xərc</div><div class="amount negative">{{money .Expense}}</div></article><article class="card stat"><div class="stathead">Xalis balans</div><div class="amount">{{money .Balance}}</div></article></section>
         <article class="card"><div class="cardtitle"><h2>Xərclər kateqoriyalara görə</h2></div>{{if .Items}}{{range .Items}}<div class="goal"><div class="goalhead"><span>{{.Name}}</span><strong>{{money .Amount}}</strong></div><div class="progress"><span style="width:{{if gt $.Expense 0.0}}{{pct .Amount $.Expense}}{{else}}0{{end}}%"></span></div></div>{{end}}{{else}}<p class="muted">Bu ay üçün xərc məlumatı yoxdur.</p>{{end}}</article>
       {{else if eq .Active "/settings"}}
@@ -107,6 +107,6 @@
   </main>
 </div>
 {{if or .Error .Success}}<div class="toast {{if .Success}}toast-ok{{else}}toast-error{{end}}" role="{{if .Error}}alert{{else}}status{{end}}" aria-live="{{if .Error}}assertive{{else}}polite{{end}}">{{if .Success}}{{.Success}}{{else}}{{.Error}}{{end}}</div>{{end}}
-<script src="/assets/app.js" defer></script>
+<script src="/assets/app.js?v=2" defer></script>
 </body>
 </html>

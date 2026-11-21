@@ -185,15 +185,33 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	page := Page{User: user, Name: user.Name, Email: user.Email, CSRF: csrf, Active: p, Month: r.URL.Query().Get("month")}
+	selectedMonth := r.URL.Query().Get("month")
+	if !validMonth(selectedMonth) {
+		selectedMonth = ""
+		if c, err := r.Cookie("blpay_month"); err == nil && validMonth(c.Value) {
+			selectedMonth = c.Value
+		}
+	}
+	page := Page{User: user, Name: user.Name, Email: user.Email, CSRF: csrf, Active: p, Month: selectedMonth}
 	if page.Month == "" {
 		page.Month = time.Now().Format("2006-01")
 	}
 	loadPage(db, r, &page, p)
+	setMonthCookie(w, r, page.Month)
 	page.Success, page.Error = takeFlash(w, r)
 	if err := tmpl.ExecuteTemplate(w, "page.html", page); err != nil {
 		log.Printf("template: %v", err)
 	}
+}
+func validMonth(value string) bool {
+	parsed, err := time.Parse("2006-01", value)
+	return err == nil && parsed.Format("2006-01") == value
+}
+func setMonthCookie(w http.ResponseWriter, r *http.Request, value string) {
+	if !validMonth(value) {
+		return
+	}
+	http.SetCookie(w, &http.Cookie{Name: "blpay_month", Value: value, Path: "/", Secure: r.TLS != nil || r.Header.Get("x-forwarded-proto") == "https", SameSite: http.SameSiteLaxMode})
 }
 func routePath(r *http.Request) string {
 	if v := r.URL.Query().Get("path"); v != "" {
@@ -679,7 +697,7 @@ func loadPage(db *sql.DB, r *http.Request, p *Page, path string) {
 		}
 		p.Title = title
 		p.FormType = typ
-		monthRows, err := db.QueryContext(ctx, `SELECT DISTINCT to_char(tarix,'YYYY-MM') FROM `+table+` WHERE istifadeci_id=$1 ORDER BY 1 DESC`, p.User.ID)
+		monthRows, err := db.QueryContext(ctx, `SELECT month FROM (SELECT DISTINCT to_char(tarix,'YYYY-MM') AS month FROM gelirler WHERE istifadeci_id=$1 UNION SELECT DISTINCT to_char(tarix,'YYYY-MM') AS month FROM xercler WHERE istifadeci_id=$1) available_months ORDER BY month DESC`, p.User.ID, p.User.ID)
 		if err == nil {
 			for monthRows.Next() {
 				var availableMonth string
@@ -689,18 +707,15 @@ func loadPage(db *sql.DB, r *http.Request, p *Page, path string) {
 			}
 			monthRows.Close()
 		}
-		if len(p.Months) > 0 {
-			found := false
-			for _, availableMonth := range p.Months {
-				if availableMonth == p.Month {
-					found = true
-					break
-				}
+		found := false
+		for _, availableMonth := range p.Months {
+			if availableMonth == p.Month {
+				found = true
+				break
 			}
-			if !found {
-				p.Month = p.Months[0]
-				month = p.Month
-			}
+		}
+		if !found {
+			p.Months = append(p.Months, p.Month)
 		}
 		rows, _ := db.QueryContext(ctx, `SELECT id,ad,tip,COALESCE(limit_mebleq,0) FROM kateqoriyalar WHERE istifadeci_id=$1 AND tip=$2 ORDER BY ad`, p.User.ID, typ)
 		if rows != nil {
