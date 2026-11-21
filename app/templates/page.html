@@ -32,7 +32,7 @@
       <div class="topbar-account"><span class="muted">{{.Name}}</span><span class="avatar">{{slice .Name 0 1}}</span></div>
     </header>
     <div class="content">
-      <div class="heading">
+      <div class="heading {{if eq .Active "/income"}}income-heading{{end}}">
         <div>{{if ne .Active "/income"}}<div class="eyebrow">Şəxsi maliyyə paneli</div>{{end}}<h1>{{.Title}}</h1>{{if ne .Active "/income"}}<p>{{if eq .Active "/"}}Salam, {{.Name}}. Maliyyə vəziyyətinizə ümumi baxış.{{else}}{{month .Month}} üçün məlumatlar{{end}}</p>{{end}}</div>
         {{if or (eq .Active "/income") (eq .Active "/expenses")}}
           <button class="btn" type="button" data-modal-open="transaction-modal"><i class="fa-solid fa-plus" aria-hidden="true"></i> Yeni {{if eq .FormType "gelir"}}gəlir{{else}}xərc{{end}}</button>
