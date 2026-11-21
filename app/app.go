@@ -683,20 +683,33 @@ func handlePost(w http.ResponseWriter, r *http.Request, db *sql.DB, u *User, pat
 	return false
 }
 
-func dashboardInsights(ctx context.Context, db *sql.DB, userID int64, balance float64, now time.Time) []Insight {
+func dashboardInsights(ctx context.Context, db *sql.DB, userID int64, now time.Time) []Insight {
 	insights := make([]Insight, 0, 2)
-	monthEnd := time.Date(now.Year(), now.Month()+1, 0, 0, 0, 0, 0, now.Location())
-	daysRemaining := monthEnd.Day() - now.Day()
-	if daysRemaining > 0 && balance > 0 {
-		dailyLimit := balance / float64(daysRemaining)
-		insights = append(insights, Insight{
-			Message: fmt.Sprintf("Ayın sonuna %d gün qalıb. Balansınızı qorumaq üçün gündəlik maksimum %.2f AZN xərcləyə bilərsiniz.", daysRemaining, dailyLimit),
-			Icon:    "fa-calendar-day",
-			Tone:    "daily",
-		})
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	lastPayday := time.Date(now.Year(), now.Month(), 6, 0, 0, 0, 0, now.Location())
+	if today.Before(lastPayday) {
+		lastPayday = time.Date(now.Year(), now.Month()-1, 6, 0, 0, 0, 0, now.Location())
+	}
+	nextPayday := lastPayday.AddDate(0, 1, 0)
+	daysRemaining := int(nextPayday.Sub(today).Hours() / 24)
+	tomorrow := today.AddDate(0, 0, 1)
+	var cycleIncome, cycleExpense float64
+	if err := db.QueryRowContext(ctx, `
+		SELECT COALESCE((SELECT SUM(mebleq) FROM gelirler WHERE istifadeci_id=$1 AND tarix >= $2::date AND tarix < $3::date),0),
+		       COALESCE((SELECT SUM(mebleq) FROM xercler WHERE istifadeci_id=$1 AND tarix >= $2::date AND tarix < $3::date),0)`,
+		userID, lastPayday.Format("2006-01-02"), tomorrow.Format("2006-01-02"),
+	).Scan(&cycleIncome, &cycleExpense); err == nil && daysRemaining > 0 {
+		cycleBalance := cycleIncome - cycleExpense
+		if cycleBalance > 0 {
+			dailyLimit := cycleBalance / float64(daysRemaining)
+			insights = append(insights, Insight{
+				Message: fmt.Sprintf("Növbəti maaşa %d gün qalıb. Qalan balansınızı qorumaq üçün gündəlik maksimum %.2f AZN xərcləyə bilərsiniz.", daysRemaining, dailyLimit),
+				Icon:    "fa-calendar-day",
+				Tone:    "daily",
+			})
+		}
 	}
 
-	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	weekdayOffset := (int(today.Weekday()) + 6) % 7
 	currentWeekStart := today.AddDate(0, 0, -weekdayOffset)
 	currentWeekEnd := today.AddDate(0, 0, 1)
@@ -759,7 +772,7 @@ func loadPage(db *sql.DB, r *http.Request, p *Page, path string) {
 		p.Months = availableMonths(ctx, db, p.User.ID, p.Month)
 		_ = db.QueryRowContext(ctx, `SELECT COALESCE((SELECT SUM(mebleq) FROM gelirler WHERE istifadeci_id=$1 AND to_char(tarix,'YYYY-MM')=$2),0),COALESCE((SELECT SUM(mebleq) FROM xercler WHERE istifadeci_id=$1 AND to_char(tarix,'YYYY-MM')=$2),0)`, p.User.ID, p.CurrentMonth).Scan(&p.Income, &p.Expense)
 		p.Balance = p.Income - p.Expense
-		p.Insights = dashboardInsights(ctx, db, p.User.ID, p.Balance, time.Now())
+		p.Insights = dashboardInsights(ctx, db, p.User.ID, time.Now())
 		rows, e := db.QueryContext(ctx, `SELECT x.id,k.ad,x.mebleq,x.tarix::text,x.hesab_novu,x.qeyd,x.kind FROM (SELECT id,kateqoriya_id,mebleq,tarix,hesab_novu,qeyd,'gelir' kind,istifadeci_id FROM gelirler UNION ALL SELECT id,kateqoriya_id,mebleq,tarix,hesab_novu,qeyd,'xerc' kind,istifadeci_id FROM xercler) x JOIN kateqoriyalar k ON k.id=x.kateqoriya_id WHERE x.istifadeci_id=$1 ORDER BY x.tarix DESC,x.id DESC LIMIT 8`, p.User.ID)
 		if e == nil {
 			defer rows.Close()
