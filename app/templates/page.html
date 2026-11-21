@@ -8,7 +8,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png?v=1">
 <link rel="icon" type="image/png" sizes="180x180" href="/assets/apple-touch-icon.png?v=1">
 <link rel="stylesheet" href="/assets/fontawesome.min.css">
-<link rel="stylesheet" href="/assets/app.css?v=19">
+<link rel="stylesheet" href="/assets/app.css?v=20">
 </head>
 <body>
 <div class="shell">
@@ -134,7 +134,8 @@
   </main>
 </div>
 <nav class="mobile-bottom-nav" aria-label="Əsas menyu"><a class="mobile-nav-link {{if eq .Active "/income"}}active{{end}}" href="/income" aria-label="Gəlirlər" title="Gəlirlər"><i class="fa-solid fa-arrow-trend-up" aria-hidden="true"></i></a><a class="mobile-nav-link {{if eq .Active "/expenses"}}active{{end}}" href="/expenses" aria-label="Xərclər" title="Xərclər"><i class="fa-solid fa-arrow-trend-down" aria-hidden="true"></i></a><a class="mobile-nav-link {{if eq .Active "/reports"}}active{{end}}" href="/reports" aria-label="Hesabatlar" title="Hesabatlar"><i class="fa-solid fa-chart-column" aria-hidden="true"></i></a><a class="mobile-nav-link {{if eq .Active "/categories"}}active{{end}}" href="/categories" aria-label="Kateqoriyalar" title="Kateqoriyalar"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></a></nav>
+<div class="page-loading" id="page-loading" role="status" aria-label="Səhifə yüklənir" aria-hidden="true"><span class="page-loading-spinner" aria-hidden="true"></span></div>
 {{if or .Error .Success}}<div class="toast {{if .Success}}toast-ok{{else}}toast-error{{end}}" role="{{if .Error}}alert{{else}}status{{end}}" aria-live="{{if .Error}}assertive{{else}}polite{{end}}">{{if .Success}}{{.Success}}{{else}}{{.Error}}{{end}}</div>{{end}}
-<script src="/assets/app.js?v=12" defer></script>
+<script src="/assets/app.js?v=13" defer></script>
 </body>
 </html>

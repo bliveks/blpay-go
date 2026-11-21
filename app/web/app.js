@@ -1,6 +1,30 @@
 (() => {
   let lastOpener = null;
 
+  const pageLoading = document.getElementById('page-loading');
+  const showPageLoading = () => {
+    if (!pageLoading) return;
+    pageLoading.classList.add('is-visible');
+    pageLoading.setAttribute('aria-hidden', 'false');
+  };
+  const hidePageLoading = () => {
+    pageLoading?.classList.remove('is-visible');
+    pageLoading?.setAttribute('aria-hidden', 'true');
+  };
+  window.addEventListener('pageshow', hidePageLoading);
+  document.addEventListener('click', (event) => {
+    const link = event.target.closest('a[href]');
+    if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || link.hasAttribute('download')) return;
+    if (link.target && link.target !== '_self') return;
+    const destination = new URL(link.href, window.location.href);
+    if (destination.origin !== window.location.origin) return;
+    if (destination.pathname === window.location.pathname && destination.search === window.location.search && destination.hash) return;
+    if (destination.href !== window.location.href) showPageLoading();
+  });
+  document.addEventListener('submit', (event) => {
+    if (!event.defaultPrevented) showPageLoading();
+  });
+
   const validMonth = (value) => /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
   const saveMonth = (value) => {
     if (!validMonth(value)) return;
@@ -10,6 +34,7 @@
   const navigateWithoutMonthQuery = () => {
     const url = new URL(window.location.href);
     url.searchParams.delete('month');
+    showPageLoading();
     window.location.assign(`${url.pathname}${url.search}${url.hash}`);
   };
 
