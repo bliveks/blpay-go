@@ -189,7 +189,7 @@
         row.hidden = !matches;
         if (matches) {
           visibleCount += 1;
-          visibleTotal += Number(row.dataset.amount);
+          visibleTotal += Number(row.dataset.amount) * (row.dataset.kind === 'xerc' ? -1 : 1);
         }
       }
       if (totalOutput) totalOutput.textContent = visibleTotal.toFixed(2);

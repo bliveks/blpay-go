@@ -762,7 +762,11 @@ func loadPage(db *sql.DB, r *http.Request, p *Page, path string) {
 					continue
 				}
 				p.Transactions = append(p.Transactions, transaction)
-				p.TransactionTotal += transaction.Amount
+				if transaction.Kind == "xerc" {
+					p.TransactionTotal -= transaction.Amount
+				} else {
+					p.TransactionTotal += transaction.Amount
+				}
 				if !dateSet[transaction.Date] {
 					p.ReportDates = append(p.ReportDates, transaction.Date)
 					dateSet[transaction.Date] = true
