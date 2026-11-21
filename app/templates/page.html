@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png?v=1">
 <link rel="icon" type="image/png" sizes="180x180" href="/assets/apple-touch-icon.png?v=1">
 <link rel="stylesheet" href="/assets/fontawesome.min.css">
-<link rel="stylesheet" href="/assets/app.css?v=29">
+<link rel="stylesheet" href="/assets/app.css?v=30">
 </head>
 <body>
 <div class="shell">
@@ -55,6 +55,7 @@
           <a class="quick-action quick-income" href="/income#quick-add"><i class="fa-solid fa-plus" aria-hidden="true"></i> Gəlir əlavə et</a>
           <a class="quick-action quick-expense" href="/expenses#quick-add"><i class="fa-solid fa-plus" aria-hidden="true"></i> Xərc əlavə et</a>
         </section>
+        {{if .ExpenseTemplates}}<section class="card expense-templates-card" aria-labelledby="expense-templates-title"><div class="cardtitle"><h2 id="expense-templates-title">Tez-tez təkrarlanan xərclər</h2></div><div class="expense-templates">{{range .ExpenseTemplates}}<form method="post" action="/expenses" class="expense-template-form"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="add"><input type="hidden" name="amount" value="{{printf "%.2f" .Amount}}"><input type="hidden" name="category" value="{{.CategoryID}}"><input type="hidden" name="date" value="{{nowDate}}"><input type="hidden" name="account" value="{{.Account}}"><input type="hidden" name="note" value="{{.Note}}"><button class="expense-template-button" type="submit" aria-label="{{if .Note}}{{.Note}}{{else}}{{.Category}}{{end}} — {{.Category}}, {{money .Amount}} əlavə et"><span class="expense-template-icon"><i class="fa-solid {{.Icon}}" aria-hidden="true"></i></span><strong>{{if .Note}}{{.Note}}{{else}}{{.Category}}{{end}}</strong><small>{{.Category}} · {{money .Amount}}</small></button></form>{{end}}</div></section>{{end}}
         {{if .Insights}}<section class="card insights-card" aria-labelledby="insights-title"><div class="cardtitle"><h2 id="insights-title">Ağıllı Maliyyə İpucları</h2></div><div class="insight-list">{{range .Insights}}<div class="insight-item {{.Tone}}"><span class="insight-icon"><i class="fa-solid {{.Icon}}" aria-hidden="true"></i></span><p>{{.Message}}</p></div>{{end}}</div></section>{{end}}
         <section class="grid">
           <article class="card"><div class="cardtitle"><h2>Son əməliyyatlar</h2><a href="/reports">Hamısına bax <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a></div>

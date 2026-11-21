@@ -111,12 +111,19 @@ type Tx struct {
 type Insight struct {
 	Message, Icon, Tone string
 }
+type ExpenseTemplate struct {
+	CategoryID             int64
+	Category, Account, Note string
+	Icon                   string
+	Amount                 float64
+}
 type Page struct {
 	Title, Active, Name, Email, Error, Success, CSRF, Month, CurrentMonth string
 	User                                                    *User
 	Income, Expense, Balance                                float64
 	Transactions                                            []Tx
 	Insights                                                []Insight
+	ExpenseTemplates                                       []ExpenseTemplate
 	Months                                                  []string
 	ReportDates, ReportNotes                                []string
 	Categories                                              []Category
@@ -773,6 +780,34 @@ func loadPage(db *sql.DB, r *http.Request, p *Page, path string) {
 		_ = db.QueryRowContext(ctx, `SELECT COALESCE((SELECT SUM(mebleq) FROM gelirler WHERE istifadeci_id=$1 AND to_char(tarix,'YYYY-MM')=$2),0),COALESCE((SELECT SUM(mebleq) FROM xercler WHERE istifadeci_id=$1 AND to_char(tarix,'YYYY-MM')=$2),0)`, p.User.ID, p.CurrentMonth).Scan(&p.Income, &p.Expense)
 		p.Balance = p.Income - p.Expense
 		p.Insights = dashboardInsights(ctx, db, p.User.ID, time.Now())
+		templates, templateErr := db.QueryContext(ctx, `
+			SELECT x.kateqoriya_id,k.ad,x.mebleq,x.hesab_novu,COALESCE(x.qeyd,'')
+			FROM xercler x
+			JOIN kateqoriyalar k ON k.id=x.kateqoriya_id
+			WHERE x.istifadeci_id=$1 AND k.istifadeci_id=$1 AND x.tarix >= CURRENT_DATE - INTERVAL '90 days'
+			GROUP BY x.kateqoriya_id,k.ad,x.mebleq,x.hesab_novu,COALESCE(x.qeyd,'')
+			HAVING COUNT(*) >= 2
+			ORDER BY COUNT(*) DESC,MAX(x.tarix) DESC
+			LIMIT 6`, p.User.ID)
+		if templateErr == nil {
+			defer templates.Close()
+			for templates.Next() {
+				var item ExpenseTemplate
+				if templates.Scan(&item.CategoryID, &item.Category, &item.Amount, &item.Account, &item.Note) == nil {
+					switch item.Category {
+					case "Nəqliyyat":
+						item.Icon = "fa-bus"
+					case "Qida":
+						item.Icon = "fa-basket-shopping"
+					case "Kommunal":
+						item.Icon = "fa-plug"
+					default:
+						item.Icon = "fa-repeat"
+					}
+					p.ExpenseTemplates = append(p.ExpenseTemplates, item)
+				}
+			}
+		}
 		rows, e := db.QueryContext(ctx, `SELECT x.id,k.ad,x.mebleq,x.tarix::text,x.hesab_novu,x.qeyd,x.kind FROM (SELECT id,kateqoriya_id,mebleq,tarix,hesab_novu,qeyd,'gelir' kind,istifadeci_id FROM gelirler UNION ALL SELECT id,kateqoriya_id,mebleq,tarix,hesab_novu,qeyd,'xerc' kind,istifadeci_id FROM xercler) x JOIN kateqoriyalar k ON k.id=x.kateqoriya_id WHERE x.istifadeci_id=$1 ORDER BY x.tarix DESC,x.id DESC LIMIT 8`, p.User.ID)
 		if e == nil {
 			defer rows.Close()
